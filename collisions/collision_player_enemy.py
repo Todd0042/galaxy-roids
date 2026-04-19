@@ -1,8 +1,7 @@
 import pygame
 
-def handle_player_hits_enemies(
-    player, enemies, bullets, shrapnel_grenades,
-    all_sprites, debugger, score, spawn_shrapnel_explosion
+def handle_player_enemy_collisions(
+    player, groups, state, sfx
 ):
     """
     Handles:
@@ -12,36 +11,56 @@ def handle_player_hits_enemies(
     - remove_on_collision logic
     """
 
+    enemies = groups["enemies"]
+    bullets = groups["bullets"]
+    shrapnel_grenades = groups["shrapnel_grenades"]
+    all_sprites = groups["all_sprites"]
+    debugger = state.get("debugger", None)
+    score = state["score"]
+
+    spawn_shrapnel_explosion = state["spawn_shrapnel_explosion"]
+
     for e in enemies.copy():
         enemy_removed = False
 
-        # Normal bullets
+        # -------------------------------------------------------
+        #   NORMAL BULLETS
+        # -------------------------------------------------------
         for b in bullets.copy():
             if e.rect.colliderect(b.rect):
                 bullets.remove(b)
                 b.kill()
 
-                if hasattr(e, "collision_effect"):
+                # ⭐ FIX: Blobs should NOT trap the player when shot
+                if hasattr(e, "collision_effect") and getattr(e, "type", "") != "BLOB":
                     e.collision_effect(player)
 
+                # ⭐ NEW: spawn splatter before removing enemy
                 if getattr(e, "remove_on_collision", True):
+                    if hasattr(e, "spawn_splatter"):
+                        e.spawn_splatter(groups)
+
                     enemies.remove(e)
                     e.kill()
 
                 score += 10
-                debugger.add_log("Enemy destroyed by bullet")
+                if debugger:
+                    debugger.add_log("Enemy destroyed by bullet")
                 enemy_removed = True
                 break
         if enemy_removed:
             continue
 
-        # Shrapnel grenades
+        # -------------------------------------------------------
+        #   SHRAPNEL GRENADES
+        # -------------------------------------------------------
         for s in shrapnel_grenades.copy():
             if s.exploded:
                 spawn_shrapnel_explosion(s.rect.center, all_sprites, bullets)
                 shrapnel_grenades.remove(s)
                 s.kill()
-                debugger.add_log("Shrapnel grenade exploded")
+                if debugger:
+                    debugger.add_log("Shrapnel grenade exploded")
                 continue
 
             if e.rect.colliderect(s.rect):
@@ -49,39 +68,54 @@ def handle_player_hits_enemies(
                 shrapnel_grenades.remove(s)
                 s.kill()
 
-                if hasattr(e, "collision_effect"):
+                # ⭐ FIX: Blobs should NOT trap the player when shot
+                if hasattr(e, "collision_effect") and getattr(e, "type", "") != "BLOB":
                     e.collision_effect(player)
 
+                # ⭐ NEW: spawn splatter before removing enemy
                 if getattr(e, "remove_on_collision", True):
+                    if hasattr(e, "spawn_splatter"):
+                        e.spawn_splatter(groups)
+
                     enemies.remove(e)
                     e.kill()
 
                 score += 10
-                debugger.add_log("Enemy destroyed by shrapnel")
+                if debugger:
+                    debugger.add_log("Enemy destroyed by shrapnel")
                 enemy_removed = True
                 break
         if enemy_removed:
             continue
 
-        # Bomber radial fragments
+        # -------------------------------------------------------
+        #   BOMBER FRAGMENTS
+        # -------------------------------------------------------
         for b in bullets.copy():
             if getattr(b, "is_bomber_fragment", False):
                 if e.rect.colliderect(b.rect):
                     bullets.remove(b)
                     b.kill()
 
-                    if hasattr(e, "collision_effect"):
+                    # ⭐ FIX: Blobs should NOT trap the player when shot
+                    if hasattr(e, "collision_effect") and getattr(e, "type", "") != "BLOB":
                         e.collision_effect(player)
 
+                    # ⭐ NEW: spawn splatter before removing enemy
                     if getattr(e, "remove_on_collision", True):
+                        if hasattr(e, "spawn_splatter"):
+                            e.spawn_splatter(groups)
+
                         enemies.remove(e)
                         e.kill()
 
                     score += 10
-                    debugger.add_log("Enemy destroyed by fragment")
+                    if debugger:
+                        debugger.add_log("Enemy destroyed by fragment")
                     enemy_removed = True
                     break
         if enemy_removed:
             continue
 
+    state["score"] = score
     return score

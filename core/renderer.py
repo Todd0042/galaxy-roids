@@ -32,9 +32,10 @@ def render_frame(screen, player, groups, state, debugger):
     # ==========================
     groups["all_sprites"].draw(screen)
 
-    # Trails draw manually (they're not normal sprites)
-    for trail in groups["trail_group"]:
-        trail.draw(screen)
+    # ==========================
+    # Trails (draw like normal sprites)
+    # ==========================
+    groups["trail_group"].draw(screen)
 
     # ==========================
     # Boss Laser (if active)

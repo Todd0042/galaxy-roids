@@ -48,6 +48,8 @@ def handle_boss_defeat(player, groups, state, sfx, screen, font):
     # 5. Clear boss bullets
     # ==========================
     groups["boss_bullets"].empty()
+    groups["boss_group"].empty()
+
 
     # ==========================
     # 6. Start next level

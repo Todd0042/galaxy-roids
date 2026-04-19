@@ -8,17 +8,50 @@ from settings import (
 
 from entities.powerups import Powerup
 from entities.asteroid import Asteroid
-from entities.boss import Boss, Boss2
 
-# Enemy classes
-from enemies.regular_enemy import RegularEnemy
-from enemies.blob_enemy import BlobEnemy
-from enemies.bomber_enemy import BomberEnemy
-from enemies.stinger_enemy import StingerEnemy
+# NEW: Modular boss imports
+from entities.bosses import Boss1, Boss2  # , Boss3, Boss4, Boss5
+
+# Correct enemy imports
+from entities.enemies.regular_enemy import RegularEnemy
+from entities.enemies.blob_enemy import BlobEnemy
+from entities.enemies.bomber_enemy import BomberEnemy
+from entities.enemies.stinger_enemy import StingerEnemy
+
+# Needed for shrapnel explosion
+from entities.projectiles import Bullet
+
+# ==========================
+#   SHRAPNEL EXPLOSION
+# ==========================
+
+def spawn_shrapnel_explosion(center, all_sprites, bullets_group):
+    SHARP_SPEED = 8
+    NUM_FRAGMENTS = 12
+
+    for i in range(NUM_FRAGMENTS):
+        angle = (360 / NUM_FRAGMENTS) * i
+        direction = pygame.math.Vector2(1, 0).rotate(angle)
+        vx = direction.x * SHARP_SPEED
+        vy = direction.y * SHARP_SPEED
+
+        frag = Bullet(
+            pos=center,
+            angle=angle,
+            screen_w=9999,
+            screen_h=9999,
+            color=(255, 200, 0),
+            size=4,
+            is_bomber_fragment=True
+        )
+        frag.vel = pygame.Vector2(vx, vy)
+
+        bullets_group.add(frag)
+        all_sprites.add(frag)
 
 
 # ==========================
-#     RANDOM POWERUPS
+#   RANDOM POWERUPS
 # ==========================
 
 def spawn_random_powerups(state, groups):
@@ -35,14 +68,45 @@ def spawn_random_powerups(state, groups):
 
 
 # ==========================
+#   BOSS ROTATION SYSTEM
+# ==========================
+
+# Bosses assigned in 2‑level pairs:
+# 1–2 → Boss1
+# 3–4 → Boss2
+# 5–6 → Boss3 (if exists, else fallback)
+# 7–8 → Boss4 (if exists, else fallback)
+# etc.
+BOSS_LIST = [
+    Boss1,  # levels 1–2
+    Boss2,  # levels 3–4
+    # Boss3,  # levels 5–6
+    # Boss4,  # levels 7–8
+    # Boss5,  # levels 9–10
+]
+
+
+def get_boss_for_level(level):
+    pair_index = (level - 1) // 2
+
+    # If we have a boss for this pair, use it
+    if pair_index < len(BOSS_LIST):
+        return BOSS_LIST[pair_index]
+
+    # Fallback logic:
+    # Even pair_index → Boss1
+    # Odd pair_index  → Boss2
+    if pair_index % 2 == 0:
+        return Boss1
+    else:
+        return Boss2
+
+
+# ==========================
 #        BOSS SPAWN
 # ==========================
 
 def spawn_boss_if_ready(state, groups, play_music):
-    """
-    Spawns the boss once the timer passes BOSS_SPAWN_TIME.
-    """
-
     if not state["game_active"]:
         return
 
@@ -58,11 +122,9 @@ def spawn_boss_if_ready(state, groups, play_music):
     level = state["level"]
     speed = state["current_boss_speed"]
 
-    # Choose boss type
-    if 4 <= level <= 6:
-        boss = Boss2(WIDTH, HEIGHT, level, speed=speed)
-    else:
-        boss = Boss(WIDTH, HEIGHT, level, speed=speed)
+    # NEW: Modular boss selection
+    boss_class = get_boss_for_level(level)
+    boss = boss_class(WIDTH, HEIGHT, level, speed=speed)
 
     groups["boss_group"].add(boss)
     groups["all_sprites"].add(boss)
@@ -93,7 +155,6 @@ def spawn_periodic_enemy_waves(state, groups):
     level = state["level"]
     speed = state["current_enemy_speed"]
 
-    # Build enemy pool based on level
     enemy_pool = []
 
     if level >= 1:
@@ -105,7 +166,6 @@ def spawn_periodic_enemy_waves(state, groups):
     if level >= 10:
         enemy_pool.append(StingerEnemy)
 
-    # Spawn 5 pairs (left + right)
     for _ in range(5):
         EnemyClass = random.choice(enemy_pool)
 
@@ -141,7 +201,6 @@ def spawn_periodic_asteroids(state, groups):
 
     ticks = pygame.time.get_ticks()
 
-    # Every ~7 seconds (ticks % 7000 < 20)
     if ticks % 7000 < 20:
         WIDTH = state["WIDTH"]
         HEIGHT = state["HEIGHT"]

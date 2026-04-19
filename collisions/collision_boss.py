@@ -1,11 +1,8 @@
 import pygame
 from settings import BULLET_DAMAGE, SHRAPNEL_DAMAGE, BOSS_DAMAGE
 
-def handle_boss_collisions(
-    player, bullets, shrapnel_grenades, gravity_bombs,
-    boss_group, all_sprites, debugger,
-    spawn_shrapnel_explosion, spawn_gravity_explosion
-):
+
+def handle_boss_collisions(player, groups, state, sfx):
     """
     Handles:
     - player bullets hitting boss
@@ -13,75 +10,84 @@ def handle_boss_collisions(
     - gravity bombs hitting boss
     - boss laser hitting player
 
-    Does NOT handle:
-    - boss death
-    - level transitions
-    - victory popup
+    Returns:
+        True  – boss died this frame
+        False – boss still alive
     """
 
+    boss_group = groups["boss_group"]
     if len(boss_group) == 0:
-        return None  # No boss active
+        return False
 
-    boss = boss_group.sprites()[0]
+    boss = next(iter(boss_group))
+
+    bullets = groups["bullets"]
+    shrapnel = groups["shrapnel_grenades"]
+    gravity = groups["gravity_bombs"]
+    all_sprites = groups["all_sprites"]
 
     # -----------------------------
-    #   Player bullets hit boss
+    # Player bullets → boss
     # -----------------------------
     for b in bullets.copy():
         if boss.rect.colliderect(b.rect):
-            bullets.remove(b)
             b.kill()
+            bullets.remove(b)
 
             boss.health -= BULLET_DAMAGE
             boss.hit_flash = 5
-            debugger.add_log("Boss hit by bullet")
 
-            return boss  # Return boss so caller can check for death
+            if boss.health <= 0:
+                boss.kill()
+                boss_group.remove(boss)
+                return True
 
     # -----------------------------
-    #   Shrapnel hits boss
+    # Shrapnel → boss
     # -----------------------------
-    for s in shrapnel_grenades.copy():
+    for s in shrapnel.copy():
         if s.exploded:
-            spawn_shrapnel_explosion(s.rect.center, all_sprites, bullets)
-            shrapnel_grenades.remove(s)
             s.kill()
+            shrapnel.remove(s)
 
             boss.health -= SHRAPNEL_DAMAGE
             boss.hit_flash = 5
-            debugger.add_log("Boss hit by shrapnel")
 
-            return boss
+            if boss.health <= 0:
+                boss.kill()
+                boss_group.remove(boss)
+                return True
 
     # -----------------------------
-    #   Gravity bomb hits boss
+    # Gravity bomb → boss
     # -----------------------------
-    for g in gravity_bombs.copy():
+    for g in gravity.copy():
         if g.exploded:
-            spawn_gravity_explosion(g.rect.center, all_sprites, bullets)
-            gravity_bombs.remove(g)
             g.kill()
+            gravity.remove(g)
 
             boss.health -= SHRAPNEL_DAMAGE
             boss.hit_flash = 5
-            debugger.add_log("Boss hit by gravity explosion")
 
-            return boss
+            if boss.health <= 0:
+                boss.kill()
+                boss_group.remove(boss)
+                return True
 
     # -----------------------------
-    #   Boss laser hits player
+    # Boss laser → player
     # -----------------------------
     if boss.laser_active_timer > 0:
         laser_rect = pygame.Rect(
             boss.rect.centerx - 40,
             boss.rect.bottom,
             80,
-            player.screen_h
+            state["HEIGHT"]
         )
+
         if laser_rect.colliderect(player.rect):
             player.health -= BOSS_DAMAGE
-            debugger.add_log("Player hit by boss laser")
+            player.lose_powerup_level()
 
-            return boss
 
-    return boss
+    return False

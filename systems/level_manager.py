@@ -1,11 +1,11 @@
 import random
 import pygame
 
-# NEW modular enemy system
-from enemies.regular_enemy import RegularEnemy
-from enemies.blob_enemy import BlobEnemy
-from enemies.bomber_enemy import BomberEnemy
-from enemies.stinger_enemy import StingerEnemy
+# Correct modular enemy imports
+from entities.enemies.regular_enemy import RegularEnemy
+from entities.enemies.blob_enemy import BlobEnemy
+from entities.enemies.bomber_enemy import BomberEnemy
+from entities.enemies.stinger_enemy import StingerEnemy
 
 # Asteroids still live in entities/
 from entities.asteroid import Asteroid
@@ -40,7 +40,6 @@ def start_level(level, width, height,
     # ==========================
     #       ASTEROID FIELD
     # ==========================
-    # Base + scaling, but capped
     asteroid_count = ASTEROID_START_COUNT + (level - 1) * ASTEROID_SCALING
     asteroid_count = min(asteroid_count, ASTEROID_MAX_COUNT)
 
@@ -55,7 +54,6 @@ def start_level(level, width, height,
     # ==========================
     #       ENEMY FORMATION
     # ==========================
-    # Mix of bug enemies + glob enemies
     for _ in range(enemies_per_side):
 
         # Build enemy pool based on level
@@ -63,13 +61,10 @@ def start_level(level, width, height,
 
         if level >= 1:
             enemy_pool.append(RegularEnemy)
-
         if level >= 4:
             enemy_pool.append(BlobEnemy)
-
         if level >= 7:
             enemy_pool.append(BomberEnemy)
-
         if level >= 10:
             enemy_pool.append(StingerEnemy)
 
@@ -96,38 +91,6 @@ def start_level(level, width, height,
 
         enemies.add(e1, e2)
         all_sprites.add(e1, e2)
-
-
-
-        # RIGHT SIDE
-        enemy_pool = []
-
-        if level >= 1:
-            enemy_pool.append(RegularEnemy)
-
-        if level >= 4:
-            enemy_pool.append(BlobEnemy)
-
-        if level >= 7:
-            enemy_pool.append(BomberEnemy)
-
-        if level >= 10:
-            enemy_pool.append(StingerEnemy)
-
-        EnemyClass = random.choice(enemy_pool)
-
-        e2 = EnemyClass(
-            pos=(width - 60, random.randint(100, height - 100)),
-            width=width,
-            height=height,
-            speed=enemy_speed,
-            level=level
-        )
-
-        enemies.add(e2)
-        all_sprites.add(e2)
-
-
 
     if debugger:
         debugger.add_log(f"[LEVEL {level}] Spawned {enemies_per_side * 2} enemies")

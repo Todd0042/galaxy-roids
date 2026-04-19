@@ -14,12 +14,15 @@ class BomberEnemy(BaseEnemy):
     def __init__(self, pos, width, height, speed=2.0, level=1):
         super().__init__(pos, width, height, speed, level)
         self.type = "BOMBER"
-        self.remove_on_collision = False
 
+        # Prevent auto-removal by generic collision handler
+        self.remove_on_collision = False
 
         # Bomber states
         self.state = "CHARGING"  # CHARGING → DASHING → EXPLODING
-        self.charge_start = pygame.time.get_ticks()
+
+        # ⭐ Stagger charge start so they don't all dash at once
+        self.charge_start = pygame.time.get_ticks() + random.randint(0, 600)
 
         # Target point (locked at dash start)
         self.locked_target = pygame.Vector2(pos)
@@ -90,7 +93,6 @@ class BomberEnemy(BaseEnemy):
         #   EXPLODING (stationary)
         # -------------------------------
         if self.state == "EXPLODING":
-            # Explosion handled in attack_update()
             return
 
     # -----------------------------------------------------------
@@ -110,10 +112,6 @@ class BomberEnemy(BaseEnemy):
             self.kill()
             return
 
-
-        # Explosion visual (handled in draw_body override if needed)
-        # Damage is handled via collision_effect()
-
     # -----------------------------------------------------------
     #   COLLISION EFFECT — explosion damage
     # -----------------------------------------------------------
@@ -122,4 +120,10 @@ class BomberEnemy(BaseEnemy):
         Called when the bomber explodes near the player.
         The main loop should check distance and apply damage.
         """
+
+        # ⭐ Apply damage using the player's explosion handler
         player.apply_explosion(BOMBER_DAMAGE)
+
+        # ⭐ Force bomber into explosion state immediately
+        self.state = "EXPLODING"
+        self.explode_timer = pygame.time.get_ticks()

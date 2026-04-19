@@ -1,91 +1,104 @@
 import pygame
-from settings import (
-    INITIAL_LIVES, ENEMY_SPEED, BOSS_SPEED_BASE,
-    FPS, BLACK
-)
-
-from systems.debugger import DebuggerOverlay
-from systems.audio import init_sfx
-from entities.player import Player
-
 
 def initialize_game():
-    """
-    Initializes pygame, screen, clock, font, debugger, SFX,
-    sprite groups, player, joysticks, and game state.
-    Returns a dictionary containing all initialized components.
-    """
-
-    # --- Pygame setup ---
     pygame.init()
     pygame.mixer.init()
 
     WIDTH, HEIGHT = 1280, 720
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Galaxyroids — Modular Edition")
+    screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
+
+    pygame.display.set_caption("GalaxyRoids")
 
     clock = pygame.time.Clock()
-    font = pygame.font.SysFont("Arial", 24)
+    font = pygame.font.Font(None, 48)
 
-    # --- Debugger ---
+    # --------------------------
+    # AUDIO
+    # --------------------------
+    from systems.audio import load_sounds, play_music
+    sfx = load_sounds()
+    sfx["play_music"] = play_music
+
+    # --------------------------
+    # DEBUGGER
+    # --------------------------
+    from systems.debugger import DebuggerOverlay
     debugger = DebuggerOverlay(font)
 
-    # --- Audio ---
-    sfx = init_sfx()
-
-    # --- Sprite groups ---
-    all_sprites = pygame.sprite.Group()
-    enemies = pygame.sprite.Group()
-    asteroids = pygame.sprite.Group()
-    bullets = pygame.sprite.Group()
-    shrapnel_grenades = pygame.sprite.Group()
-    boss_group = pygame.sprite.Group()
-    boss_bullets = pygame.sprite.Group()
-    gravity_bombs = pygame.sprite.Group()
-    powerups = pygame.sprite.Group()
-    trail_group = pygame.sprite.Group()
-
-    # --- Player ---
+    # --------------------------
+    # PLAYER
+    # --------------------------
+    from entities.player import Player
     player = Player(WIDTH, HEIGHT)
-    all_sprites.add(player)
 
-    # --- Joysticks ---
+    # --------------------------
+    # JOYSTICKS
+    # --------------------------
     joysticks = []
     for i in range(pygame.joystick.get_count()):
-        joy = pygame.joystick.Joystick(i)
-        joy.init()
-        joysticks.append(joy)
+        js = pygame.joystick.Joystick(i)
+        js.init()
+        joysticks.append(js)
 
-    # --- Game state ---
-    state = {
-        "lives": INITIAL_LIVES,
+    # --------------------------
+    # GROUPS
+    # --------------------------
+    groups = {
+        "all_sprites": pygame.sprite.Group(),
+        "enemies": pygame.sprite.Group(),
+        "asteroids": pygame.sprite.Group(),
+        "bullets": pygame.sprite.Group(),
+        "boss_bullets": pygame.sprite.Group(),
+        "boss_group": pygame.sprite.Group(),
+        "trail_group": pygame.sprite.Group(),
+        "shrapnel_grenades": pygame.sprite.Group(),
+        "gravity_bombs": pygame.sprite.Group(),
+        "powerups": pygame.sprite.Group(),   # holds actual powerup sprites
+    }
+
+    groups["all_sprites"].add(player)
+
+    # --------------------------
+    # POWERUP SPAWNER (FIX)
+    # --------------------------
+    from core.powerup_spawner import PowerupSpawner
+
+    state = {}  # ensure state exists before adding entries
+
+    state["powerup_spawner"] = PowerupSpawner(
+        groups["powerups"],      # where powerup sprites go
+        groups["all_sprites"]    # ensures they render
+    )
+
+    # --------------------------
+    # GAME STATE
+    # --------------------------
+    from core.spawner import spawn_shrapnel_explosion
+
+    state.update({
+        "WIDTH": WIDTH,
+        "HEIGHT": HEIGHT,
         "score": 0,
+        "lives": 3,
         "level": 1,
         "game_active": False,
-
-        "enemies_per_side": 6,
-        "current_enemy_speed": ENEMY_SPEED,
-        "current_boss_speed": BOSS_SPEED_BASE,
-
+        "boss_spawned": False,
         "last_pew_time": 0,
         "last_periodic_spawn": 0,
-        "boss_spawned": False,
         "level_start_time": pygame.time.get_ticks(),
-    }
+        "current_enemy_speed": 1.0,
+        "current_boss_speed": 1.0,
+        "enemies_per_side": 4,
 
-    # --- Group bundle for convenience ---
-    groups = {
-        "all_sprites": all_sprites,
-        "enemies": enemies,
-        "asteroids": asteroids,
-        "bullets": bullets,
-        "shrapnel_grenades": shrapnel_grenades,
-        "boss_group": boss_group,
-        "boss_bullets": boss_bullets,
-        "gravity_bombs": gravity_bombs,
-        "powerups": powerups,
-        "trail_group": trail_group,
-    }
+        # ⭐ MUST BE HERE
+        "spawn_shrapnel_explosion": spawn_shrapnel_explosion,
+
+        # ⭐ MUST BE HERE
+        "debugger": debugger,
+    })
+
+
+
 
     return {
         "screen": screen,

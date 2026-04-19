@@ -165,3 +165,53 @@ class Player(pygame.sprite.Sprite):
 
         if self.fire_cooldown > 0:
             self.fire_cooldown -= 1
+
+    def lose_powerup_level(self):
+        if self.powerup_hits > 0:
+            self.powerup_hits -= 1
+
+        # --- Recalculate weapon state based on new level ---
+        lvl = self.powerup_hits
+
+        # Reset everything
+        self.weapon_mode = "NORMAL"
+        self.has_laser = False
+        self.homing_count = 0
+
+        # Level 1 → Spread
+        if lvl == 1:
+            self.weapon_mode = "SPREAD"
+
+        # Level 2 → Spread + Rapid-fire
+        elif lvl == 2:
+            self.weapon_mode = "SPREAD"
+
+        # Level 3 → Faster rapid-fire spread
+        elif lvl == 3:
+            self.weapon_mode = "SPREAD"
+
+        # Level 4 → Laser + rapid-fire spread
+        elif lvl == 4:
+            self.weapon_mode = "SPREAD"
+            self.has_laser = True
+
+        # Level 5 → Laser + spread + 1 homing missile
+        elif lvl == 5:
+            self.weapon_mode = "SPREAD"
+            self.has_laser = True
+            self.homing_count = 1
+
+        # Level 6+ → Laser + spread + 2 homing missiles
+        elif lvl >= 6:
+            self.weapon_mode = "SPREAD"
+            self.has_laser = True
+            self.homing_count = 2
+
+        self.update_appearance()
+
+    # -------------------------------------------------
+    #   Explosion damage hook (for bombers, etc.)
+    # -------------------------------------------------
+    def apply_explosion(self, damage):
+        self.health -= damage
+        self.lose_powerup_level()

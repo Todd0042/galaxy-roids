@@ -9,7 +9,16 @@ from settings import (
 
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, pos, angle, screen_w, screen_h, color=(255, 255, 255), size=4):
+    def __init__(
+        self,
+        pos,
+        angle,
+        screen_w,
+        screen_h,
+        color=(255, 255, 255),
+        size=4,
+        is_bomber_fragment=False
+    ):
         super().__init__()
 
         self.screen_w = screen_w
@@ -22,15 +31,12 @@ class Bullet(pygame.sprite.Sprite):
         self.pos = pygame.Vector2(pos)
         self.vel = pygame.Vector2(BULLET_SPEED, 0).rotate(angle)
 
-        self.is_bomber_fragment = False
+        self.is_bomber_fragment = is_bomber_fragment
 
     def update(self, **kwargs):
-        # Move
         self.pos += self.vel
         self.rect.center = self.pos
 
-
-        # Kill only when fully off-screen (using position, not rect)
         if (
             self.pos.x < 0 or
             self.pos.x > self.screen_w or
@@ -38,8 +44,6 @@ class Bullet(pygame.sprite.Sprite):
             self.pos.y > self.screen_h
         ):
             self.kill()
-
-
 
 
 class ShrapnelBullet(pygame.sprite.Sprite):
@@ -108,34 +112,152 @@ class GravityBomb(pygame.sprite.Sprite):
 
 
 # ==========================
+#   LASER BEAM (Powerup 4)
+# ==========================
+
+class LaserBeam(pygame.sprite.Sprite):
+    def __init__(self, pos, direction, screen_w, screen_h):
+        super().__init__()
+
+        self.screen_w = screen_w
+        self.screen_h = screen_h
+
+        # Long cyan beam
+        self.image = pygame.Surface((6, 40), pygame.SRCALPHA)
+        pygame.draw.rect(self.image, (0, 255, 255), (0, 0, 6, 40))
+        self.rect = self.image.get_rect(center=pos)
+
+        self.pos = pygame.Vector2(pos)
+        self.vel = pygame.Vector2(direction) * 25  # very fast
+
+        # Pierces enemies — no hit counter
+
+    def update(self, **kwargs):
+        self.pos += self.vel
+        self.rect.center = self.pos
+
+        if (
+            self.pos.x < 0 or
+            self.pos.x > self.screen_w or
+            self.pos.y < 0 or
+            self.pos.y > self.screen_h
+        ):
+            self.kill()
+
+
+# ==========================
+#   HOMING MISSILE (Powerup 5 & 6)
+# ==========================
+
+class HomingMissile(pygame.sprite.Sprite):
+    def __init__(self, pos, direction, screen_w, screen_h, groups, launch_frames=18):
+        super().__init__()
+
+        self.screen_w = screen_w
+        self.screen_h = screen_h
+
+        self.image = pygame.Surface((12, 12), pygame.SRCALPHA)
+        pygame.draw.circle(self.image, (255, 150, 50), (6, 6), 6)
+        self.rect = self.image.get_rect(center=pos)
+
+        self.pos = pygame.Vector2(pos)
+        self.vel = pygame.Vector2(direction) * 8
+
+        self.groups_ref = groups
+        self.launch_timer = launch_frames
+        self.target = None
+        self.speed = 8
+
+    def acquire_target(self):
+        enemies = self.groups_ref["enemies"]
+        if not enemies:
+            return None
+
+        closest = None
+        closest_dist = 999999
+
+        for e in enemies:
+            d = self.pos.distance_to(e.pos)
+            if d < closest_dist:
+                closest = e
+                closest_dist = d
+
+        return closest
+
+    def update(self, **kwargs):
+        # Phase 1 — straight launch
+        if self.launch_timer > 0:
+            self.launch_timer -= 1
+            self.pos += self.vel
+            self.rect.center = self.pos
+            return
+
+        # Phase 2 — acquire target
+        if self.target is None or not self.target.alive():
+            self.target = self.acquire_target()
+            if self.target is None:
+                self.pos += self.vel
+                self.rect.center = self.pos
+                return
+
+        # Phase 3 — homing dash
+        direction = (self.target.pos - self.pos).normalize()
+        self.speed = min(self.speed + 0.5, 20)
+        self.vel = direction * self.speed
+
+        self.pos += self.vel
+        self.rect.center = self.pos
+
+        if (
+            self.pos.x < 0 or
+            self.pos.x > self.screen_w or
+            self.pos.y < 0 or
+            self.pos.y > self.screen_h
+        ):
+            self.kill()
+
+
+# ==========================
 #   EXPLOSION HELPERS
 # ==========================
 
 def spawn_shrapnel_explosion(center, all_sprites=None, group=None):
-    """Spawn radial fragments for shrapnel."""
     if group is None:
         return
 
     for i in range(12):
         angle = i * 30
-        frag = Bullet(center, angle, 9999, 9999, color=(255, 200, 0), size=4)
+        frag = Bullet(
+            center,
+            angle,
+            9999,
+            9999,
+            color=(255, 200, 0),
+            size=4,
+            is_bomber_fragment=True
+        )
         frag.vel *= 0.6
-        frag.is_bomber_fragment = True
         group.add(frag)
         if all_sprites:
             all_sprites.add(frag)
 
 
 def spawn_gravity_explosion(center, all_sprites=None, group=None):
-    """Spawn a gravity bomb implosion effect."""
     if group is None:
         return
 
     for i in range(20):
         angle = i * 18
-        frag = Bullet(center, angle, 9999, 9999, color=RED, size=6)
+        frag = Bullet(
+            center,
+            angle,
+            9999,
+            9999,
+            color=RED,
+            size=6,
+            is_bomber_fragment=True
+        )
         frag.vel *= 0.4
-        frag.is_bomber_fragment = True
         group.add(frag)
         if all_sprites:
             all_sprites.add(frag)

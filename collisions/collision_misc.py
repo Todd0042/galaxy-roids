@@ -4,18 +4,17 @@ from settings import (
     POWERUP_SPAWN_CHANCE
 )
 
-def handle_misc_collisions(
-    player, bullets, asteroids, powerups,
-    all_sprites, debugger, spawn_shrapnel_explosion,
-    shrapnel_grenades
-):
-    """
-    Handles:
-    - bullets hitting asteroids
-    - asteroid splitting
-    - powerup pickups
-    - shrapnel grenade explosion triggers
-    """
+def handle_misc_collisions(player, groups, state, sfx):
+    all_sprites = groups["all_sprites"]
+    asteroids = groups["asteroids"]
+    bullets = groups["bullets"]
+    shrapnel_grenades = groups["shrapnel_grenades"]
+    gravity_bombs = groups["gravity_bombs"]
+    powerups = groups.get("powerups", None)
+
+    debugger = state.get("debugger", None)
+    spawn_shrapnel_explosion = state["spawn_shrapnel_explosion"]
+
 
     # --- Bullets hitting asteroids ---
     for a in asteroids.copy():
@@ -37,7 +36,7 @@ def handle_misc_collisions(
                     # Spawn powerup randomly
                     import random
                     if random.random() < POWERUP_SPAWN_CHANCE:
-                        p = powerups.spawn(a.rect.center)
+                        p = state["powerup_spawner"].spawn(a.rect.center)
                         all_sprites.add(p)
                         debugger.add_log("Powerup spawned")
 

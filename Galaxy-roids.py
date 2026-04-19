@@ -941,6 +941,8 @@ def main():
             for frag in bomber_hits:
                 if hasattr(frag, 'is_bomber_fragment'):
                     player.health -= BOMBER_DAMAGE
+                    player.lose_powerup_level()
+
                     frag.kill()
                     bomber_frag_hit = True
 
@@ -983,10 +985,16 @@ def main():
                     pass
                 elif blob_hit:
                     player.health -= BLOB_DAMAGE
+                    player.lose_powerup_level()
+
                     player.stun_timer = BLOB_STUN_TIME
                     player.vel = pygame.Vector2(0, 0) # Halt momentum on capture
                 else:
                     player.health -= HAZARD_DAMAGE
+                    player.lose_powerup_level()
+
+                    player.lose_powerup_level()
+
                 
                 # Give the player invulnerability on any hit to prevent instant death and unwanted resets
                 player.invulnerable_timer = 120

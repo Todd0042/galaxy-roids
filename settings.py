@@ -40,6 +40,13 @@ PLAYER_FIRE_RATE = 10
 PLAYER_COLLISION_DAMAGE = 5
 SHRAPNEL_COOLDOWN_MAX = 120
 SPREAD_HITS_REVERT = 1
+# ==========================
+#   PLAYER WEAPON TIMING
+# ==========================
+
+LASER_FIRE_COOLDOWN = 24        # frames between laser shots
+HOMING_FIRE_COOLDOWN = 48      # frames between missile shots
+
 
 # Rapid-fire toggle
 ENABLE_RAPID_FIRE = True
@@ -70,7 +77,7 @@ ENEMY_DIVE_CHANCE = 0.04 * DIFFICULTY_MULTIPLIER
 #   BOSS SETTINGS
 # ==========================
 ENEMY_WAVE_DELAY = 10
-BOSS_SPAWN_TIME = 5000
+BOSS_SPAWN_TIME = 75000
 
 BOSS_HEALTH_BASE = 60 * DIFFICULTY_MULTIPLIER
 BOSS_SPEED_BASE = 0.8 * DIFFICULTY_MULTIPLIER
@@ -87,6 +94,7 @@ BOSS_LASER_WARNING = 90
 BULLET_SPEED = 10
 BULLET_LIFESPAN = 500
 
+
 # ==========================
 #   ASTEROIDS
 # ==========================
@@ -102,4 +110,4 @@ ASTEROID_HEALTH_SMALL = 1
 # ==========================
 #   POWERUPS
 # ==========================
-POWERUP_SPAWN_CHANCE = 0.005
+POWERUP_SPAWN_CHANCE = 0.01

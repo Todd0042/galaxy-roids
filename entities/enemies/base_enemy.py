@@ -1,6 +1,8 @@
 import pygame
 import math
 import random
+from effects.splatter import SplatterParticle
+
 
 
 class BaseEnemy(pygame.sprite.Sprite):
@@ -126,3 +128,9 @@ class BaseEnemy(pygame.sprite.Sprite):
     def angle_to(self, target):
         direction = (target - self.pos)
         return math.degrees(math.atan2(-direction.y, direction.x))
+
+    # Death Splatter Effect
+    def spawn_splatter(self, groups, color=(255, 50, 50)):
+        for _ in range(12):
+            p = SplatterParticle(self.pos, color)
+            groups["all_sprites"].add(p)

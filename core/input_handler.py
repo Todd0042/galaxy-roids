@@ -10,14 +10,6 @@ def handle_gameplay_input(event, player, groups, state, sfx):
     - Pause
     - Fire button press/release
     - Shrapnel grenade
-    - (Joystick support can be added here later)
-
-    Parameters:
-        event   – pygame event
-        player  – Player instance
-        groups  – dict of sprite groups
-        state   – game state dict
-        sfx     – sound effects dict
     """
 
     # --- Pause ---
@@ -28,22 +20,33 @@ def handle_gameplay_input(event, player, groups, state, sfx):
             raise SystemExit
         return
 
-    # --- FIRE BUTTON PRESS ---
+    # -------------------------------------------------------
+    #   FIRE BUTTON PRESS
+    # -------------------------------------------------------
     if event.type == pygame.KEYDOWN:
         if event.key in (pygame.K_SPACE, pygame.K_LSHIFT, pygame.K_RSHIFT):
             player.fire_button_held = True
 
-    # --- FIRE BUTTON RELEASE ---
+    # -------------------------------------------------------
+    #   FIRE BUTTON RELEASE  ⭐ CRITICAL FIX
+    # -------------------------------------------------------
     if event.type == pygame.KEYUP:
         if event.key in (pygame.K_SPACE, pygame.K_LSHIFT, pygame.K_RSHIFT):
             player.fire_button_held = False
+            state["single_shot_fired"] = False   # <-- prevents permanent lockout
 
-    # --- SPECIAL GRENADE (Enter + Caps Lock) ---
+    # -------------------------------------------------------
+    #   SPECIAL GRENADE (Enter + Caps Lock)
+    # -------------------------------------------------------
     if event.type == pygame.KEYDOWN:
         if event.key in (pygame.K_RETURN, pygame.K_CAPSLOCK):
             if player.shrapnel_cooldown == 0:
-                s = ShrapnelBullet(player.pos, player.angle,
-                                   state["WIDTH"], state["HEIGHT"])
+                s = ShrapnelBullet(
+                    player.pos,
+                    player.angle,
+                    state["WIDTH"],
+                    state["HEIGHT"]
+                )
                 groups["shrapnel_grenades"].add(s)
                 groups["all_sprites"].add(s)
                 player.shrapnel_cooldown = SHRAPNEL_COOLDOWN_MAX
