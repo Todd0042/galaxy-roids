@@ -45,7 +45,7 @@ class BlobEnemy(BaseEnemy):
         return pygame.Surface((48, 48), pygame.SRCALPHA)
 
     # -----------------------------------------------------------
-    #   MOVEMENT — slow drift + wobble
+    #   MOVEMENT — slow drift + wobble + WRAP
     # -----------------------------------------------------------
     def movement_update(self, player_pos):
         if player_pos is None:
@@ -62,6 +62,11 @@ class BlobEnemy(BaseEnemy):
         t = pygame.time.get_ticks() * 0.003 + self.wobble_offset
         self.pos.x += math.sin(t) * BLOB_WOBBLE_AMOUNT
         self.pos.y += math.cos(t * 0.7) * (BLOB_WOBBLE_AMOUNT * 0.6)
+
+        # NEW: Pac‑Man style wrapping
+        self.pos.x %= self.width
+        self.pos.y %= self.height
+
 
     # -----------------------------------------------------------
     #   ATTACK — blobs do not shoot or dive

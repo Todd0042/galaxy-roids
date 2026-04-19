@@ -50,6 +50,19 @@ def handle_boss_defeat(player, groups, state, sfx, screen, font):
     groups["boss_bullets"].empty()
     groups["boss_group"].empty()
 
+    # ==========================
+    # 5.5 Reduce player powerups between levels
+    # ==========================
+    player.powerup_hits = min(player.powerup_hits, 1)
+
+    player.weapon_mode = "NORMAL"
+    player.has_laser = False
+    player.homing_count = 0
+
+    if player.powerup_hits == 1:
+        player.weapon_mode = "SPREAD"
+
+    player.update_appearance()
 
     # ==========================
     # 6. Start next level
@@ -63,7 +76,7 @@ def handle_boss_defeat(player, groups, state, sfx, screen, font):
         groups["asteroids"],
         state["current_enemy_speed"],
         state["enemies_per_side"],
-        debugger=None  # debugger is optional in your start_level()
+        debugger=None
     )
 
     return "continue"

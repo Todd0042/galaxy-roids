@@ -8,6 +8,9 @@ from settings import (
 )
 
 
+# ============================================================
+#   BASE BULLET
+# ============================================================
 class Bullet(pygame.sprite.Sprite):
     def __init__(
         self,
@@ -21,6 +24,7 @@ class Bullet(pygame.sprite.Sprite):
     ):
         super().__init__()
 
+        # Initial bounds (dynamic override happens in update)
         self.screen_w = screen_w
         self.screen_h = screen_h
 
@@ -34,9 +38,16 @@ class Bullet(pygame.sprite.Sprite):
         self.is_bomber_fragment = is_bomber_fragment
 
     def update(self, **kwargs):
+        # Dynamic world size
+        state = kwargs.get("state")
+        if state:
+            self.screen_w = state["WIDTH"]
+            self.screen_h = state["HEIGHT"]
+
         self.pos += self.vel
         self.rect.center = self.pos
 
+        # Despawn when leaving screen
         if (
             self.pos.x < 0 or
             self.pos.x > self.screen_w or
@@ -46,6 +57,9 @@ class Bullet(pygame.sprite.Sprite):
             self.kill()
 
 
+# ============================================================
+#   SHRAPNEL BULLET
+# ============================================================
 class ShrapnelBullet(pygame.sprite.Sprite):
     def __init__(self, pos, angle, screen_w, screen_h):
         super().__init__()
@@ -63,6 +77,12 @@ class ShrapnelBullet(pygame.sprite.Sprite):
         self.exploded = False
 
     def update(self, **kwargs):
+        # Dynamic world size
+        state = kwargs.get("state")
+        if state:
+            self.screen_w = state["WIDTH"]
+            self.screen_h = state["HEIGHT"]
+
         self.pos += self.vel
         self.rect.center = self.pos
 
@@ -70,11 +90,19 @@ class ShrapnelBullet(pygame.sprite.Sprite):
         if self.timer <= 0:
             self.exploded = True
 
-        if (self.pos.x < -50 or self.pos.x > self.screen_w + 50 or
-            self.pos.y < -50 or self.pos.y > self.screen_h + 50):
+        # Despawn when far outside screen
+        if (
+            self.pos.x < -50 or
+            self.pos.x > self.screen_w + 50 or
+            self.pos.y < -50 or
+            self.pos.y > self.screen_h + 50
+        ):
             self.kill()
 
 
+# ============================================================
+#   GRAVITY BOMB
+# ============================================================
 class GravityBomb(pygame.sprite.Sprite):
     def __init__(self, pos, angle, screen_w, screen_h, target_dist):
         super().__init__()
@@ -93,6 +121,12 @@ class GravityBomb(pygame.sprite.Sprite):
         self.exploded = False
 
     def update(self, **kwargs):
+        # Dynamic world size
+        state = kwargs.get("state")
+        if state:
+            self.screen_w = state["WIDTH"]
+            self.screen_h = state["HEIGHT"]
+
         self.pos += self.vel
         self.dist_traveled += self.vel.length()
         self.rect.center = self.pos
@@ -111,10 +145,9 @@ class GravityBomb(pygame.sprite.Sprite):
             self.kill()
 
 
-# ==========================
-#   LASER BEAM (Powerup 4)
-# ==========================
-
+# ============================================================
+#   LASER BEAM
+# ============================================================
 class LaserBeam(pygame.sprite.Sprite):
     def __init__(self, pos, direction, screen_w, screen_h):
         super().__init__()
@@ -122,17 +155,20 @@ class LaserBeam(pygame.sprite.Sprite):
         self.screen_w = screen_w
         self.screen_h = screen_h
 
-        # Long cyan beam
         self.image = pygame.Surface((6, 40), pygame.SRCALPHA)
         pygame.draw.rect(self.image, (0, 255, 255), (0, 0, 6, 40))
         self.rect = self.image.get_rect(center=pos)
 
         self.pos = pygame.Vector2(pos)
-        self.vel = pygame.Vector2(direction) * 25  # very fast
-
-        # Pierces enemies — no hit counter
+        self.vel = pygame.Vector2(direction) * 25
 
     def update(self, **kwargs):
+        # Dynamic world size
+        state = kwargs.get("state")
+        if state:
+            self.screen_w = state["WIDTH"]
+            self.screen_h = state["HEIGHT"]
+
         self.pos += self.vel
         self.rect.center = self.pos
 
@@ -145,10 +181,9 @@ class LaserBeam(pygame.sprite.Sprite):
             self.kill()
 
 
-# ==========================
-#   HOMING MISSILE (Powerup 5 & 6)
-# ==========================
-
+# ============================================================
+#   HOMING MISSILE
+# ============================================================
 class HomingMissile(pygame.sprite.Sprite):
     def __init__(self, pos, direction, screen_w, screen_h, groups, launch_frames=18):
         super().__init__()
@@ -185,6 +220,12 @@ class HomingMissile(pygame.sprite.Sprite):
         return closest
 
     def update(self, **kwargs):
+        # Dynamic world size
+        state = kwargs.get("state")
+        if state:
+            self.screen_w = state["WIDTH"]
+            self.screen_h = state["HEIGHT"]
+
         # Phase 1 — straight launch
         if self.launch_timer > 0:
             self.launch_timer -= 1
@@ -217,10 +258,9 @@ class HomingMissile(pygame.sprite.Sprite):
             self.kill()
 
 
-# ==========================
+# ============================================================
 #   EXPLOSION HELPERS
-# ==========================
-
+# ============================================================
 def spawn_shrapnel_explosion(center, all_sprites=None, group=None):
     if group is None:
         return
@@ -230,7 +270,7 @@ def spawn_shrapnel_explosion(center, all_sprites=None, group=None):
         frag = Bullet(
             center,
             angle,
-            9999,
+            9999,  # dynamic override in update()
             9999,
             color=(255, 200, 0),
             size=4,
@@ -251,7 +291,7 @@ def spawn_gravity_explosion(center, all_sprites=None, group=None):
         frag = Bullet(
             center,
             angle,
-            9999,
+            9999,  # dynamic override in update()
             9999,
             color=RED,
             size=6,

@@ -28,11 +28,17 @@ class Boss2(BaseBoss):
         self.target_y = 150
         self.bomb_cooldown = 180
 
+    # ---------------------------------------------------------
+    #   MOVEMENT — dynamic horizontal + vertical sway
+    # ---------------------------------------------------------
     def update_movement(self):
         ticks = pygame.time.get_ticks()
         self.pos.x = self.screen_w // 2 + math.sin(ticks * 0.0015) * (self.screen_w // 3)
         self.pos.y = self.target_y + math.cos(ticks * 0.003) * 50
 
+    # ---------------------------------------------------------
+    #   ATTACK — gravity bombs
+    # ---------------------------------------------------------
     def update_attacks(self):
         if self.bomb_cooldown > 0:
             self.bomb_cooldown -= 1
@@ -43,10 +49,14 @@ class Boss2(BaseBoss):
         angle = random.randint(60, 120)
         bomb = GravityBomb(self.rect.center, angle, self.screen_w, self.screen_h, dist)
 
-        # Add to groups
-        if "all_sprites" in self.groups():
-            self.groups()["all_sprites"].add(bomb)
-        if "gravity_bombs" in self.groups():
-            self.groups()["gravity_bombs"].add(bomb)
+        # NEW: Correct group insertion
+        groups = self.groups()
+        for g in groups:
+            # Add to all_sprites
+            if hasattr(g, "name") and g.name == "all_sprites":
+                g.add(bomb)
+            # Add to gravity_bombs
+            if hasattr(g, "name") and g.name == "gravity_bombs":
+                g.add(bomb)
 
         self.bomb_cooldown = 180

@@ -71,6 +71,10 @@ class StingerEnemy(BaseEnemy):
 
             self.pos = player_pos + offset
 
+            # ⭐ WRAP during circling
+            self.pos.x %= self.width
+            self.pos.y %= self.height
+
             # Randomly decide to dash
             if random.random() < 0.02:
                 self.state = "DASHING"
@@ -87,6 +91,10 @@ class StingerEnemy(BaseEnemy):
 
             self.pos += direction * STINGER_DASH_SPEED
 
+            # ⭐ WRAP during dash
+            self.pos.x %= self.width
+            self.pos.y %= self.height
+
             # Overshoot check
             if self.pos.distance_to(self.dash_target) < 12:
                 self.state = "RECOVERY"
@@ -97,9 +105,14 @@ class StingerEnemy(BaseEnemy):
         #   RECOVERY (curve back around)
         # -------------------------------
         if self.state == "RECOVERY":
+            # ⭐ WRAP during recovery
+            self.pos.x %= self.width
+            self.pos.y %= self.height
+
             if now - self.recovery_start > STINGER_RECOVERY_TIME:
                 self.state = "CIRCLING"
             return
+
 
     # -----------------------------------------------------------
     #   ATTACK LOGIC — stingers don't shoot

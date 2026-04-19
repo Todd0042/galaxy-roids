@@ -6,9 +6,9 @@ from ui.hud import (
 )
 
 
-def render_frame(screen, player, groups, state, debugger):
+def render_frame(surface, player, groups, state, debugger):
     """
-    Draws the entire frame:
+    Draws the entire frame to the provided surface:
     - Background
     - All sprites
     - Trails
@@ -25,43 +25,42 @@ def render_frame(screen, player, groups, state, debugger):
     # ==========================
     # Background
     # ==========================
-    screen.fill((0, 0, 0))
+    surface.fill((0, 0, 0))
 
     # ==========================
     # Sprites
     # ==========================
-    groups["all_sprites"].draw(screen)
+    groups["all_sprites"].draw(surface)
 
     # ==========================
     # Trails (draw like normal sprites)
     # ==========================
-    groups["trail_group"].draw(screen)
+    groups["trail_group"].draw(surface)
 
     # ==========================
     # Boss Laser (if active)
     # ==========================
     for boss in groups["boss_group"]:
         if hasattr(boss, "draw_laser") and boss.laser_active:
-            boss.draw_laser(screen)
+            boss.draw_laser(surface)
 
     # ==========================
     # HUD
     # ==========================
-    draw_player_health_bar(screen, player)
-    draw_shrapnel_cooldown(screen, player)
+    draw_player_health_bar(surface, player, state)
+    draw_shrapnel_cooldown(surface, player, state)
 
     # Boss health bar (if boss exists)
     boss = next(iter(groups["boss_group"]), None)
     if boss:
-        draw_boss_health_bar(screen, boss, WIDTH)
+        draw_boss_health_bar(surface, boss, state)
 
     # ==========================
     # Debugger Overlay (if active)
     # ==========================
     if debugger.active:
-        debugger.draw(screen, WIDTH, HEIGHT)
+        debugger.draw(surface, WIDTH, HEIGHT)
 
-    # ==========================
-    # Flip
-    # ==========================
-    pygame.display.flip()
+    # NOTE:
+    # No pygame.display.flip() here.
+    # main.py handles flipping after blitting the render surface.

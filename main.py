@@ -45,10 +45,14 @@ def main():
     state["WIDTH"] = WIDTH
     state["HEIGHT"] = HEIGHT
 
+    # Create the dynamic render surface
+    render_surface = pygame.Surface((WIDTH, HEIGHT))
+    state["render_surface"] = render_surface
+
     # ==========================
     # LEVEL SELECT
     # ==========================
-    start_level = run_level_select(font)
+    start_level = run_level_select(font, state)
     state["level"] = start_level
 
     # ==========================
@@ -73,12 +77,33 @@ def main():
             continue
 
         # --------------------------
-        # INPUT HANDLING
+        # INPUT + EVENTS
         # --------------------------
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
                 break
+
+            # --- Handle window resizing ---
+            if event.type == pygame.VIDEORESIZE:
+                WIDTH = event.w
+                HEIGHT = event.h
+
+                # Recreate window in RESIZABLE mode
+                screen = pygame.display.set_mode(
+                    (WIDTH, HEIGHT),
+                    pygame.RESIZABLE
+                )
+
+                # Recreate the dynamic render surface
+                render_surface = pygame.Surface((WIDTH, HEIGHT))
+
+                # Update state so all modules see new size
+                state["WIDTH"] = WIDTH
+                state["HEIGHT"] = HEIGHT
+                state["render_surface"] = render_surface
+
+                continue
 
             handle_gameplay_input(event, player, groups, state, sfx)
 
@@ -98,7 +123,8 @@ def main():
         # --------------------------
         # UPDATE SPRITES
         # --------------------------
-        if not update_all_sprites(player, joysticks, groups, debugger):
+        if not update_all_sprites(player, joysticks, groups, debugger, state):
+
             continue
 
         # --------------------------
@@ -118,9 +144,14 @@ def main():
             continue
 
         # --------------------------
-        # RENDER
+        # RENDER (NEW PIPELINE)
         # --------------------------
-        render_frame(screen, player, groups, state, debugger)
+        # Draw everything to the dynamic render surface
+        render_frame(render_surface, player, groups, state, debugger)
+
+        # Blit the render surface to the actual window
+        screen.blit(render_surface, (0, 0))
+        pygame.display.flip()
 
     # ==========================
     # GAME OVER SCREEN

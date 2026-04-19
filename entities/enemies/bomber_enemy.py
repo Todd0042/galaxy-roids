@@ -71,6 +71,9 @@ class BomberEnemy(BaseEnemy):
                 # Lock onto player's position *once*
                 if player_pos is not None:
                     self.locked_target = pygame.Vector2(player_pos)
+            # ⭐ WRAP during charging
+            self.pos.x %= self.width
+            self.pos.y %= self.height
             return
 
         # -------------------------------
@@ -83,6 +86,10 @@ class BomberEnemy(BaseEnemy):
 
             self.pos += direction * BOMBER_DASH_SPEED
 
+            # ⭐ WRAP during dash
+            self.pos.x %= self.width
+            self.pos.y %= self.height
+
             # Check if bomber reached its target zone
             if self.pos.distance_to(self.locked_target) < 12:
                 self.state = "EXPLODING"
@@ -93,7 +100,9 @@ class BomberEnemy(BaseEnemy):
         #   EXPLODING (stationary)
         # -------------------------------
         if self.state == "EXPLODING":
+            # ⭐ Do NOT wrap during explosion
             return
+
 
     # -----------------------------------------------------------
     #   ATTACK LOGIC — explosion damage

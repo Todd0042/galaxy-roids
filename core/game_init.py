@@ -4,8 +4,15 @@ def initialize_game():
     pygame.init()
     pygame.mixer.init()
 
-    WIDTH, HEIGHT = 1280, 720
+    info = pygame.display.Info()
+    WIDTH, HEIGHT = info.current_w, info.current_h
+
     screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
+
+
+    # ⭐ Immediately maximize the window (SDL trick)
+    pygame.display.toggle_fullscreen()
+    pygame.display.toggle_fullscreen()
 
     pygame.display.set_caption("GalaxyRoids")
 

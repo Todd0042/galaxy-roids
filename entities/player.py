@@ -35,6 +35,7 @@ class Player(pygame.sprite.Sprite):
         self.last_asteroid_hit = 0
         self.asteroid_hit_cooldown = 1000  # 1 second
 
+        # Store initial size (but dynamic size will override this)
         self.screen_w = screen_w
         self.screen_h = screen_h
 
@@ -69,16 +70,17 @@ class Player(pygame.sprite.Sprite):
         self.health = self.max_health
         self.stun_timer = 0
 
+    # -------------------------------------------------
+    #   Status Effects
+    # -------------------------------------------------
     def apply_trap(self, duration_ms, damage):
-        # Apply damage
         self.health -= damage
-
-        # Convert ms → frames (your game runs at 60 FPS)
         frames = int(duration_ms / 1000 * 60)
-
-        # Activate stun
         self.stun_timer = frames
 
+    # -------------------------------------------------
+    #   Appearance
+    # -------------------------------------------------
     def update_appearance(self):
         self.color = GOLDEN_YELLOW if self.weapon_mode == "SPREAD" else CYAN
         self.original_image.fill((0, 0, 0, 0))
@@ -94,10 +96,19 @@ class Player(pygame.sprite.Sprite):
         self.image = pygame.transform.rotate(self.original_image, -self.angle)
         self.rect = self.image.get_rect(center=self.pos)
 
+    # -------------------------------------------------
+    #   Main Update
+    # -------------------------------------------------
     def update(self, **kwargs):
         keys = pygame.key.get_pressed()
         joysticks = kwargs.get("joysticks", [])
         trail_group = kwargs.get("trail_group")
+        state = kwargs.get("state")
+
+        # Dynamic screen size (critical for resizing)
+        if state:
+            self.screen_w = state["WIDTH"]
+            self.screen_h = state["HEIGHT"]
 
         is_thrusting = False
 
@@ -147,8 +158,11 @@ class Player(pygame.sprite.Sprite):
         # --- Movement physics ---
         self.vel *= self.friction
         self.pos += self.vel
+
+        # --- Dynamic wrapping using updated screen size ---
         self.pos.x %= self.screen_w
         self.pos.y %= self.screen_h
+
         self.rect.center = self.pos
 
         # --- Visual flicker for stun/invulnerability ---
@@ -166,42 +180,32 @@ class Player(pygame.sprite.Sprite):
         if self.fire_cooldown > 0:
             self.fire_cooldown -= 1
 
+    # -------------------------------------------------
+    #   Powerup Loss
+    # -------------------------------------------------
     def lose_powerup_level(self):
         if self.powerup_hits > 0:
             self.powerup_hits -= 1
 
-        # --- Recalculate weapon state based on new level ---
         lvl = self.powerup_hits
 
-        # Reset everything
         self.weapon_mode = "NORMAL"
         self.has_laser = False
         self.homing_count = 0
 
-        # Level 1 → Spread
         if lvl == 1:
             self.weapon_mode = "SPREAD"
-
-        # Level 2 → Spread + Rapid-fire
         elif lvl == 2:
             self.weapon_mode = "SPREAD"
-
-        # Level 3 → Faster rapid-fire spread
         elif lvl == 3:
             self.weapon_mode = "SPREAD"
-
-        # Level 4 → Laser + rapid-fire spread
         elif lvl == 4:
             self.weapon_mode = "SPREAD"
             self.has_laser = True
-
-        # Level 5 → Laser + spread + 1 homing missile
         elif lvl == 5:
             self.weapon_mode = "SPREAD"
             self.has_laser = True
             self.homing_count = 1
-
-        # Level 6+ → Laser + spread + 2 homing missiles
         elif lvl >= 6:
             self.weapon_mode = "SPREAD"
             self.has_laser = True
@@ -210,7 +214,7 @@ class Player(pygame.sprite.Sprite):
         self.update_appearance()
 
     # -------------------------------------------------
-    #   Explosion damage hook (for bombers, etc.)
+    #   Explosion damage hook
     # -------------------------------------------------
     def apply_explosion(self, damage):
         self.health -= damage

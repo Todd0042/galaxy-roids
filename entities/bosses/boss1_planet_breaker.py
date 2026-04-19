@@ -26,20 +26,54 @@ class Boss1(BaseBoss):
         self.fire_rate_max = max(15, 45 - (level * 2))
         self.laser_cooldown = BOSS_LASER_COOLDOWN
 
+        # NEW: laser state
+        self.laser_active = False
+
+    # ---------------------------------------------------------
+    #   MOVEMENT — horizontal sway (dynamic width)
+    # ---------------------------------------------------------
     def update_movement(self):
         ticks = pygame.time.get_ticks()
         freq = 0.001 * (self.speed / BOSS_SPEED_BASE)
         self.pos.x = self.screen_w // 2 + math.sin(ticks * freq) * (self.screen_w // 4)
 
+    # ---------------------------------------------------------
+    #   ATTACKS — laser logic
+    # ---------------------------------------------------------
     def update_attacks(self):
-        # Laser logic
+        # Laser currently firing
         if self.laser_active_timer > 0:
+            self.laser_active = True
             return
+
+        # Laser warning phase
         if self.laser_warning_timer > 0:
+            self.laser_active = False
             return
+
+        # Cooling down
         if self.laser_cooldown > 0:
             self.laser_cooldown -= 1
             return
 
+        # Fire laser
         self.laser_warning_timer = BOSS_LASER_WARNING
+        self.laser_active_timer = BOSS_LASER_DURATION
         self.laser_cooldown = BOSS_LASER_COOLDOWN
+
+    # ---------------------------------------------------------
+    #   DRAW LASER (renderer calls this)
+    # ---------------------------------------------------------
+    def draw_laser(self, screen):
+        if not self.laser_active:
+            return
+
+        # Laser is a vertical beam from boss downward
+        laser_rect = pygame.Rect(
+            self.pos.x - 10,
+            self.pos.y + 40,
+            20,
+            self.screen_h - (self.pos.y + 40)
+        )
+
+        pygame.draw.rect(screen, (255, 50, 50), laser_rect)
