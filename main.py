@@ -7,7 +7,6 @@ from systems.audio import init_sfx, play_music
 from systems.level_manager import start_level
 
 from entities.player import Player
-from entities.enemy import Enemy
 from entities.asteroid import Asteroid
 from entities.boss import Boss, Boss2
 from entities.projectiles import (
@@ -16,6 +15,11 @@ from entities.projectiles import (
 )
 from entities.powerups import Powerup
 
+# NEW modular enemy system
+from enemies.regular_enemy import RegularEnemy
+from enemies.blob_enemy import BlobEnemy
+from enemies.bomber_enemy import BomberEnemy
+from enemies.stinger_enemy import StingerEnemy
 
 # ==========================
 #        HUD FUNCTIONS
@@ -70,6 +74,127 @@ def draw_boss_health_bar(screen, boss, WIDTH):
 
 
 # ==========================
+#        POPUP SYSTEM
+# ==========================
+
+def popup_menu_loop(title, lines, options):
+    """
+    Generic popup menu loop.
+    - title: string
+    - lines: list of strings
+    - options: list of (label, return_value)
+    Returns: return_value of selected option, or "escape"
+    """
+    pygame.font.init()
+    font = pygame.font.SysFont("Arial", 28)
+    small_font = pygame.font.SysFont("Arial", 22)
+
+    screen = pygame.display.get_surface()
+    WIDTH, HEIGHT = screen.get_size()
+
+    selected = 0
+    clock = pygame.time.Clock()
+
+    while True:
+        clock.tick(60)
+        screen.fill((0, 0, 0))
+
+        # --- Title ---
+        title_surf = font.render(title, True, (255, 255, 0))
+        screen.blit(title_surf, (WIDTH // 2 - title_surf.get_width() // 2, 120))
+
+        # --- Lines ---
+        y = 200
+        for line in lines:
+            line_surf = small_font.render(line, True, (200, 200, 200))
+            screen.blit(line_surf, (WIDTH // 2 - line_surf.get_width() // 2, y))
+            y += 30
+
+        # --- Options ---
+        y += 40
+        for i, (label, _) in enumerate(options):
+            color = (255, 255, 255) if i == selected else (150, 150, 150)
+            opt_surf = font.render(label, True, color)
+            screen.blit(opt_surf, (WIDTH // 2 - opt_surf.get_width() // 2, y))
+            y += 50
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return "exit"
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return "escape"
+
+                if event.key in (pygame.K_UP, pygame.K_w):
+                    selected = (selected - 1) % len(options)
+
+                if event.key in (pygame.K_DOWN, pygame.K_s):
+                    selected = (selected + 1) % len(options)
+
+                if event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                    return options[selected][1]
+
+
+def show_victory_popup(score, current_level):
+    """
+    Victory popup after defeating a boss.
+    Returns: "harder", "same", or "exit"
+    """
+    title = "VICTORIOUS!"
+
+    lines = [
+        f"Level {current_level} Complete",
+        f"Score: {score}",
+        "",
+        "You pushed back the invasion threat.",
+        "Prepare for the next challenge."
+    ]
+
+    options = [
+        ("Greater Challenge", "harder"),
+        ("Just Vibe", "same"),
+        ("Exit", "exit")
+    ]
+
+    result = popup_menu_loop(title, lines, options)
+
+    if result == "escape":
+        return "exit"
+
+    return result
+
+
+def show_pause_popup():
+    """
+    Pause menu popup.
+    Returns: "resume" or "exit"
+    """
+    title = "PAUSED"
+
+    lines = [
+        "",
+        "Take a breather.",
+        "",
+        "Use UP/DOWN to choose, ENTER to confirm."
+    ]
+
+    options = [
+        ("Resume", "resume"),
+        ("Exit to Desktop", "exit")
+    ]
+
+    result = popup_menu_loop(title, lines, options)
+
+    if result in ("escape", None):
+        return "resume"
+
+    return result
+
+
+# ==========================
 #            MAIN
 # ==========================
 
@@ -80,6 +205,7 @@ def main():
     WIDTH, HEIGHT = 1280, 720
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Galaxyroids — Modular Edition")
+    enemies_destroyed = 0
 
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("Arial", 24)
@@ -138,9 +264,9 @@ def main():
         level_text = font.render(f"Level: {selected_start_level}", True, CYAN)
         prompt_text = font.render("LEFT/RIGHT to change — ENTER to start", True, GOLDEN_YELLOW)
 
-        screen.blit(title_text, (WIDTH//2 - title_text.get_width()//2, HEIGHT//2 - 40))
-        screen.blit(level_text, (WIDTH//2 - level_text.get_width()//2, HEIGHT//2))
-        screen.blit(prompt_text, (WIDTH//2 - prompt_text.get_width()//2, HEIGHT//2 + 40))
+        screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, HEIGHT // 2 - 40))
+        screen.blit(level_text, (WIDTH // 2 - level_text.get_width() // 2, HEIGHT // 2))
+        screen.blit(prompt_text, (WIDTH // 2 - prompt_text.get_width() // 2, HEIGHT // 2 + 40))
 
         pygame.display.flip()
 
@@ -168,7 +294,7 @@ def main():
         while pygame.time.get_ticks() - start_ticks < 1000:
             screen.fill(BLACK)
             count_text = font.render(str(i), True, GOLDEN_YELLOW)
-            screen.blit(count_text, (WIDTH//2 - count_text.get_width()//2, HEIGHT//2))
+            screen.blit(count_text, (WIDTH // 2 - count_text.get_width() // 2, HEIGHT // 2))
             pygame.display.flip()
 
             for event in pygame.event.get():
@@ -186,6 +312,7 @@ def main():
         debugger=debugger
     )
     level_start_time = pygame.time.get_ticks()
+
     # ==========================
     #         MAIN LOOP
     # ==========================
@@ -216,8 +343,11 @@ def main():
                 running = False
 
             if event.type == pygame.KEYDOWN:
+                # Pause
                 if event.key == pygame.K_ESCAPE:
-                    running = False
+                    result = show_pause_popup()
+                    if result == "exit":
+                        running = False
 
                 # Fire bullets
                 if event.key in (pygame.K_SPACE, pygame.K_LSHIFT, pygame.K_RSHIFT):
@@ -272,15 +402,47 @@ def main():
         #   PERIODIC ENEMY WAVES
         # ==========================
         if game_active and not boss_spawned and ticks - last_periodic_spawn > 5000:
+
+            # Build enemy pool based on level
+            enemy_pool = []
+
+            if level >= 1:
+                enemy_pool.append(RegularEnemy)
+
+            if level >= 4:
+                enemy_pool.append(BlobEnemy)
+
+            if level >= 7:
+                enemy_pool.append(BomberEnemy)
+
+            if level >= 10:
+                enemy_pool.append(StingerEnemy)
+
+            # Spawn 5 pairs (left + right)
             for _ in range(5):
-                e1 = Enemy((60, random.randint(100, HEIGHT - 100)), WIDTH, HEIGHT,
-                           speed=current_enemy_speed, level=level)
-                e2 = Enemy((WIDTH - 60, random.randint(100, HEIGHT - 100)), WIDTH, HEIGHT,
-                           speed=current_enemy_speed, level=level)
+                EnemyClass = random.choice(enemy_pool)
+
+                e1 = EnemyClass(
+                    pos=(60, random.randint(100, HEIGHT - 100)),
+                    width=WIDTH,
+                    height=HEIGHT,
+                    speed=current_enemy_speed,
+                    level=level
+                )
+
+                e2 = EnemyClass(
+                    pos=(WIDTH - 60, random.randint(100, HEIGHT - 100)),
+                    width=WIDTH,
+                    height=HEIGHT,
+                    speed=current_enemy_speed,
+                    level=level
+                )
+
                 enemies.add(e1, e2)
                 all_sprites.add(e1, e2)
 
             last_periodic_spawn = ticks
+
 
         # ==========================
         #   PERIODIC ASTEROID RESPAWN
@@ -352,6 +514,7 @@ def main():
                             if not handle_player_death():
                                 running = False
                         break
+
                 # --- Player hits enemies ---
                 for e in enemies.copy():
                     enemy_removed = False
@@ -516,10 +679,8 @@ def main():
                                 score += 500
                                 debugger.add_log("Boss defeated")
 
-                                # ------------------------------
-                                #   SHOW VICTORY POPUP HERE
-                                # ------------------------------
-                                result = show_victory_popup(player, enemies_destroyed, level)
+                                # --- Victory Popup ---
+                                result = show_victory_popup(score, level)
 
                                 if result == "exit":
                                     running = False
@@ -529,9 +690,7 @@ def main():
                                     current_enemy_speed += 0.3
                                     current_boss_speed += 0.3
 
-                                # ------------------------------
-                                #   PREPARE NEXT LEVEL
-                                # ------------------------------
+                                # --- Next Level ---
                                 boss_spawned = False
                                 level += 1
 
@@ -544,8 +703,8 @@ def main():
 
                                 level_start_time = pygame.time.get_ticks()
 
-
                             break
+
                     # Shrapnel hits boss
                     for s in shrapnel_grenades.copy():
                         if s.exploded:
@@ -562,10 +721,8 @@ def main():
                                 score += 500
                                 debugger.add_log("Boss defeated")
 
-                                # ------------------------------
-                                #   SHOW VICTORY POPUP HERE
-                                # ------------------------------
-                                result = show_victory_popup(player, enemies_destroyed, level)
+                                # --- Victory Popup ---
+                                result = show_victory_popup(score, level)
 
                                 if result == "exit":
                                     running = False
@@ -575,9 +732,7 @@ def main():
                                     current_enemy_speed += 0.3
                                     current_boss_speed += 0.3
 
-                                # ------------------------------
-                                #   PREPARE NEXT LEVEL
-                                # ------------------------------
+                                # --- Next Level ---
                                 boss_spawned = False
                                 level += 1
 
@@ -589,7 +744,6 @@ def main():
                                 )
 
                                 level_start_time = pygame.time.get_ticks()
-
 
                             break
 
@@ -609,10 +763,8 @@ def main():
                                 score += 500
                                 debugger.add_log("Boss defeated")
 
-                                # ------------------------------
-                                #   SHOW VICTORY POPUP HERE
-                                # ------------------------------
-                                result = show_victory_popup(player, enemies_destroyed, level)
+                                # --- Victory Popup ---
+                                result = show_victory_popup(score, level)
 
                                 if result == "exit":
                                     running = False
@@ -622,9 +774,7 @@ def main():
                                     current_enemy_speed += 0.3
                                     current_boss_speed += 0.3
 
-                                # ------------------------------
-                                #   PREPARE NEXT LEVEL
-                                # ------------------------------
+                                # --- Next Level ---
                                 boss_spawned = False
                                 level += 1
 
@@ -636,7 +786,6 @@ def main():
                                 )
 
                                 level_start_time = pygame.time.get_ticks()
-
 
                             break
 
@@ -678,7 +827,7 @@ def main():
         if boss_spawned:
             draw_boss_health_bar(screen, boss, WIDTH)
 
-        # --- HUD TEXT (left‑aligned under bars) ---
+        # --- HUD TEXT ---
         lives_text = font.render(f"LIVES: {lives}", True, WHITE)
         level_text = font.render(f"LEVEL: {level}", True, WHITE)
         score_text = font.render(f"SCORE: {score}", True, WHITE)
@@ -700,9 +849,9 @@ def main():
         score_text = font.render(f"Final Score: {score}", True, WHITE)
         prompt_text = font.render("Press R to Restart or Q to Quit", True, CYAN)
 
-        screen.blit(over_text, (WIDTH//2 - over_text.get_width()//2, HEIGHT//2 - 60))
-        screen.blit(score_text, (WIDTH//2 - score_text.get_width()//2, HEIGHT//2))
-        screen.blit(prompt_text, (WIDTH//2 - prompt_text.get_width()//2, HEIGHT//2 + 40))
+        screen.blit(over_text, (WIDTH // 2 - over_text.get_width() // 2, HEIGHT // 2 - 60))
+        screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, HEIGHT // 2))
+        screen.blit(prompt_text, (WIDTH // 2 - prompt_text.get_width() // 2, HEIGHT // 2 + 40))
 
         pygame.display.flip()
 

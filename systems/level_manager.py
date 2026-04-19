@@ -1,16 +1,20 @@
 import random
 import pygame
 
-from entities.enemy import Enemy
-from entities.glob_enemy import GlobEnemy
+# NEW modular enemy system
+from enemies.regular_enemy import RegularEnemy
+from enemies.blob_enemy import BlobEnemy
+from enemies.bomber_enemy import BomberEnemy
+from enemies.stinger_enemy import StingerEnemy
+
+# Asteroids still live in entities/
 from entities.asteroid import Asteroid
-from entities.bomber_bug import BomberBug
+
 from settings import (
     ASTEROID_START_COUNT,
     ASTEROID_SCALING,
     ASTEROID_MAX_COUNT
 )
-
 
 
 def start_level(level, width, height,

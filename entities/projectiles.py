@@ -21,21 +21,25 @@ class Bullet(pygame.sprite.Sprite):
 
         self.pos = pygame.Vector2(pos)
         self.vel = pygame.Vector2(BULLET_SPEED, 0).rotate(angle)
-        self.lifespan = BULLET_LIFESPAN
 
         self.is_bomber_fragment = False
 
     def update(self, **kwargs):
+        # Move
         self.pos += self.vel
         self.rect.center = self.pos
 
-        self.lifespan -= 1
-        if self.lifespan <= 0:
+
+        # Kill only when fully off-screen (using position, not rect)
+        if (
+            self.pos.x < 0 or
+            self.pos.x > self.screen_w or
+            self.pos.y < 0 or
+            self.pos.y > self.screen_h
+        ):
             self.kill()
 
-        if (self.pos.x < -50 or self.pos.x > self.screen_w + 50 or
-            self.pos.y < -50 or self.pos.y > self.screen_h + 50):
-            self.kill()
+
 
 
 class ShrapnelBullet(pygame.sprite.Sprite):
