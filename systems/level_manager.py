@@ -58,59 +58,75 @@ def start_level(level, width, height,
     # Mix of bug enemies + glob enemies
     for _ in range(enemies_per_side):
 
-        # LEFT SIDE
-        roll = random.random()
-        if roll < 0.20:
-            e1 = GlobEnemy(
-                (60, random.randint(100, height - 100)),
-                width, height,
-                speed=enemy_speed * 0.8,
-                level=level
-            )
-        elif roll < 0.40:
-            e1 = BomberBug(
-                (60, random.randint(100, height - 100)),
-                width, height,
-                speed=enemy_speed * 1.2,
-                level=level
-            )
-        else:
-            e1 = Enemy(
-                (60, random.randint(100, height - 100)),
-                width, height,
-                speed=enemy_speed,
-                level=level
-            )
+        # Build enemy pool based on level
+        enemy_pool = []
 
-        enemies.add(e1)
-        all_sprites.add(e1)
+        if level >= 1:
+            enemy_pool.append(RegularEnemy)
+
+        if level >= 4:
+            enemy_pool.append(BlobEnemy)
+
+        if level >= 7:
+            enemy_pool.append(BomberEnemy)
+
+        if level >= 10:
+            enemy_pool.append(StingerEnemy)
+
+        # Pick a random enemy type
+        EnemyClass = random.choice(enemy_pool)
+
+        # LEFT SIDE spawn
+        e1 = EnemyClass(
+            pos=(60, random.randint(100, height - 100)),
+            width=width,
+            height=height,
+            speed=enemy_speed,
+            level=level
+        )
+
+        # RIGHT SIDE spawn
+        e2 = EnemyClass(
+            pos=(width - 60, random.randint(100, height - 100)),
+            width=width,
+            height=height,
+            speed=enemy_speed,
+            level=level
+        )
+
+        enemies.add(e1, e2)
+        all_sprites.add(e1, e2)
+
+
 
         # RIGHT SIDE
-        roll = random.random()
-        if roll < 0.20:
-            e2 = GlobEnemy(
-                (width - 60, random.randint(100, height - 100)),
-                width, height,
-                speed=enemy_speed * 0.8,
-                level=level
-            )
-        elif roll < 0.40:
-            e2 = BomberBug(
-                (width - 60, random.randint(100, height - 100)),
-                width, height,
-                speed=enemy_speed * 1.2,
-                level=level
-            )
-        else:
-            e2 = Enemy(
-                (width - 60, random.randint(100, height - 100)),
-                width, height,
-                speed=enemy_speed,
-                level=level
-            )
+        enemy_pool = []
+
+        if level >= 1:
+            enemy_pool.append(RegularEnemy)
+
+        if level >= 4:
+            enemy_pool.append(BlobEnemy)
+
+        if level >= 7:
+            enemy_pool.append(BomberEnemy)
+
+        if level >= 10:
+            enemy_pool.append(StingerEnemy)
+
+        EnemyClass = random.choice(enemy_pool)
+
+        e2 = EnemyClass(
+            pos=(width - 60, random.randint(100, height - 100)),
+            width=width,
+            height=height,
+            speed=enemy_speed,
+            level=level
+        )
 
         enemies.add(e2)
         all_sprites.add(e2)
+
 
 
     if debugger:

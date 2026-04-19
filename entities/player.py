@@ -27,13 +27,18 @@ class Player(pygame.sprite.Sprite):
     def __init__(self, screen_w, screen_h):
         super().__init__()
 
+        # --- Rapid-fire state ---
+        self.fire_cooldown = 0
+        self.fire_button_held = False
+
+        # --- Asteroid collision cooldown ---
         self.last_asteroid_hit = 0
         self.asteroid_hit_cooldown = 1000  # 1 second
-
 
         self.screen_w = screen_w
         self.screen_h = screen_h
 
+        # --- Ship appearance ---
         self.original_image = pygame.Surface((PLAYER_SIZE, PLAYER_SIZE), pygame.SRCALPHA)
         self.color = CYAN
         pygame.draw.polygon(
@@ -43,6 +48,7 @@ class Player(pygame.sprite.Sprite):
         self.image = self.original_image
         self.rect = self.image.get_rect(center=(screen_w // 2, screen_h // 2))
 
+        # --- Movement state ---
         self.pos = pygame.Vector2(self.rect.center)
         self.vel = pygame.Vector2(0, 0)
         self.direction = pygame.Vector2(1, 0)
@@ -52,14 +58,26 @@ class Player(pygame.sprite.Sprite):
         self.thrust = PLAYER_THRUST
         self.friction = PLAYER_FRICTION
 
+        # --- Combat state ---
         self.shrapnel_cooldown = 0
         self.weapon_mode = "NORMAL"
         self.powerup_hits = 0
+
+        # --- Status effects ---
         self.invulnerable_timer = 0
         self.max_health = PLAYER_MAX_HEALTH
         self.health = self.max_health
-
         self.stun_timer = 0
+
+    def apply_trap(self, duration_ms, damage):
+        # Apply damage
+        self.health -= damage
+
+        # Convert ms → frames (your game runs at 60 FPS)
+        frames = int(duration_ms / 1000 * 60)
+
+        # Activate stun
+        self.stun_timer = frames
 
     def update_appearance(self):
         self.color = GOLDEN_YELLOW if self.weapon_mode == "SPREAD" else CYAN
@@ -83,13 +101,17 @@ class Player(pygame.sprite.Sprite):
 
         is_thrusting = False
 
+        # --- Invulnerability flicker ---
         if self.invulnerable_timer > 0:
             self.invulnerable_timer -= 1
 
+        # --- Stun stops movement ---
         if self.stun_timer > 0:
             self.stun_timer -= 1
             self.vel = pygame.Vector2(0, 0)
+
         else:
+            # --- Joystick rotation & thrust ---
             for joy in joysticks:
                 if joy.get_axis(0) < -0.3:
                     self.rotate(-self.rotation_speed)
@@ -103,6 +125,7 @@ class Player(pygame.sprite.Sprite):
                     self.vel *= PLAYER_BRAKE_FRICTION
                     self.vel -= self.direction * PLAYER_REVERSE_THRUST
 
+            # --- Keyboard rotation & thrust ---
             if keys[pygame.K_LEFT] or keys[pygame.K_a]:
                 self.rotate(-self.rotation_speed)
             if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
@@ -114,18 +137,21 @@ class Player(pygame.sprite.Sprite):
                 self.vel *= PLAYER_BRAKE_FRICTION
                 self.vel -= self.direction * PLAYER_REVERSE_THRUST
 
+        # --- Engine trail ---
         if is_thrusting and trail_group is not None:
             for side in [-1, 1]:
                 offset = self.direction.rotate(90 * side) * 8 - self.direction * 10
                 jitter = pygame.Vector2(random.uniform(-1, 1), random.uniform(-1, 1))
                 trail_group.add(TrailSegment(self.pos + offset + jitter))
 
+        # --- Movement physics ---
         self.vel *= self.friction
         self.pos += self.vel
         self.pos.x %= self.screen_w
         self.pos.y %= self.screen_h
         self.rect.center = self.pos
 
+        # --- Visual flicker for stun/invulnerability ---
         if self.stun_timer > 0:
             self.image.set_alpha(150)
         elif self.invulnerable_timer % 10 > 5:
@@ -133,5 +159,9 @@ class Player(pygame.sprite.Sprite):
         else:
             self.image.set_alpha(255)
 
+        # --- Cooldowns ---
         if self.shrapnel_cooldown > 0:
             self.shrapnel_cooldown -= 1
+
+        if self.fire_cooldown > 0:
+            self.fire_cooldown -= 1

@@ -14,6 +14,8 @@ class BomberEnemy(BaseEnemy):
     def __init__(self, pos, width, height, speed=2.0, level=1):
         super().__init__(pos, width, height, speed, level)
         self.type = "BOMBER"
+        self.remove_on_collision = False
+
 
         # Bomber states
         self.state = "CHARGING"  # CHARGING → DASHING → EXPLODING
@@ -102,8 +104,12 @@ class BomberEnemy(BaseEnemy):
 
         # Explosion lasts briefly
         if now - self.explode_timer > self.explode_duration:
+            if self.groups():
+                for g in self.groups():
+                    g.remove(self)
             self.kill()
             return
+
 
         # Explosion visual (handled in draw_body override if needed)
         # Damage is handled via collision_effect()

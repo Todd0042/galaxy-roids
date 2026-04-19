@@ -21,6 +21,15 @@ from enemies.blob_enemy import BlobEnemy
 from enemies.bomber_enemy import BomberEnemy
 from enemies.stinger_enemy import StingerEnemy
 
+# COLLISIONS
+from collisions.collision_player_enemy import handle_player_hits_enemies
+from collisions.collision_enemy_player import handle_enemies_hit_player
+from collisions.collision_misc import handle_misc_collisions
+from collisions.collision_boss import handle_boss_collisions
+from collisions.boss_death_handler import handle_boss_death
+
+
+
 # ==========================
 #        HUD FUNCTIONS
 # ==========================
@@ -121,6 +130,7 @@ def popup_menu_loop(title, lines, options):
         pygame.display.flip()
 
         for event in pygame.event.get():
+            
             if event.type == pygame.QUIT:
                 return "exit"
 
@@ -327,13 +337,21 @@ def main():
             pygame.display.flip()
 
             for event in pygame.event.get():
+
+                # NEW: let debugger handle mouse selection + Ctrl+C
+                debugger.handle_event(event)
+
+                # Resume / Quit still work the same
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_r:
                         debugger.active = False
-                    if event.key == pygame.K_q:
+                    elif event.key == pygame.K_q:
                         pygame.quit()
                         return
+
             continue
+
+
 
         # ==========================
         #       EVENT HANDLING
@@ -349,22 +367,24 @@ def main():
                     if result == "exit":
                         running = False
 
-                # Fire bullets
+                # --- FIRE BUTTON PRESS ---
                 if event.key in (pygame.K_SPACE, pygame.K_LSHIFT, pygame.K_RSHIFT):
-                    now = pygame.time.get_ticks()
-                    if sfx["pew"] and now - last_pew_time > 150:
-                        sfx["pew"].play()
-                        last_pew_time = now
+                    player.fire_button_held = True
 
-                    if player.weapon_mode == "SPREAD":
-                        for offset in (-15, 0, 15):
-                            b = Bullet(player.pos, player.angle + offset, WIDTH, HEIGHT)
-                            bullets.add(b)
-                            all_sprites.add(b)
-                    else:
-                        b = Bullet(player.pos, player.angle, WIDTH, HEIGHT)
-                        bullets.add(b)
-                        all_sprites.add(b)
+                # --- FIRE BUTTON RELEASE ---
+                if event.type == pygame.KEYUP:
+                    if event.key in (pygame.K_SPACE, pygame.K_LSHIFT, pygame.K_RSHIFT):
+                        player.fire_button_held = False
+
+                # --- SPECIAL GRENADE (Enter + Caps Lock) ---
+                if event.key in (pygame.K_RETURN, pygame.K_CAPSLOCK):
+                    if player.shrapnel_cooldown == 0:
+                        s = ShrapnelBullet(player.pos, player.angle, WIDTH, HEIGHT)
+                        shrapnel_grenades.add(s)
+                        all_sprites.add(s)
+                        player.shrapnel_cooldown = SHRAPNEL_COOLDOWN_MAX
+
+
 
                 # Shrapnel grenade
                 if event.key in (pygame.K_CAPSLOCK, pygame.K_RETURN):
@@ -478,6 +498,28 @@ def main():
             except Exception as e:
                 debugger.capture_exception(e, debugger.last_sprite)
                 continue
+            # ==========================
+            #        AUTO-FIRE
+            # ==========================
+            if player.fire_button_held or player.powerup_hits >= 2:
+                if player.fire_cooldown == 0:
+                    now = pygame.time.get_ticks()
+                    if sfx["pew"] and now - last_pew_time > 150:
+                        sfx["pew"].play()
+                        last_pew_time = now
+
+                    if player.weapon_mode == "SPREAD":
+                        for offset in (-15, 0, 15):
+                            b = Bullet(player.pos, player.angle + offset, WIDTH, HEIGHT)
+                            bullets.add(b)
+                            all_sprites.add(b)
+                    else:
+                        b = Bullet(player.pos, player.angle, WIDTH, HEIGHT)
+                        bullets.add(b)
+                        all_sprites.add(b)
+
+                    player.fire_cooldown = 10  # adjust fire rate
+
 
             # --------------------------
             #     PLAYER DEATH HANDLER
@@ -498,312 +540,98 @@ def main():
 
                 return True
 
+
             # --------------------------
             #         COLLISIONS
             # --------------------------
             try:
-                # --- Player hit by enemy bullets ---
-                for b in boss_bullets.copy():
-                    if b.rect.colliderect(player.rect):
-                        boss_bullets.remove(b)
-                        b.kill()
-                        player.health -= HAZARD_DAMAGE
-                        debugger.add_log("Player hit by enemy bullet")
+                # 1. Player bullets → enemies
+                score = handle_player_hits_enemies(
+                    player,
+                    enemies,
+                    bullets,
+                    shrapnel_grenades,
+                    all_sprites,
+                    debugger,
+                    score,
+                    spawn_shrapnel_explosion
+                )
 
-                        if player.health <= 0:
-                            if not handle_player_death():
-                                running = False
-                        break
+                # 2. Enemies → player (enemy bullets, contact, blobs, bombers, asteroids)
+                player.health = handle_enemies_hit_player(
+                    player,
+                    enemies,
+                    boss_bullets,
+                    asteroids,
+                    debugger,
+                    pygame.time.get_ticks()
+                )
 
-                # --- Player hits enemies ---
-                for e in enemies.copy():
-                    enemy_removed = False
+                # If player died from any of the above:
+                if player.health <= 0:
+                    if not handle_player_death():
+                        running = False
 
-                    # Normal bullets
-                    for b in bullets.copy():
-                        if e.rect.colliderect(b.rect):
-                            bullets.remove(b)
-                            b.kill()
-                            enemies.remove(e)
-                            e.kill()
-                            score += 10
-                            enemy_removed = True
-                            debugger.add_log("Enemy destroyed by bullet")
-                            break
-                    if enemy_removed:
-                        continue
+                # 3. Misc collisions (asteroids, powerups, grenade triggers, gravity bombs)
+                handle_misc_collisions(
+                    player,
+                    bullets,
+                    asteroids,
+                    powerups,
+                    all_sprites,
+                    debugger,
+                    spawn_shrapnel_explosion,
+                    shrapnel_grenades
+                )
 
-                    # Shrapnel grenades
-                    for s in shrapnel_grenades.copy():
-                        if s.exploded:
-                            spawn_shrapnel_explosion(s.rect.center, all_sprites, bullets)
-                            shrapnel_grenades.remove(s)
-                            s.kill()
-                            debugger.add_log("Shrapnel grenade exploded")
-                            continue
+                # 4. Boss collisions (bullets, shrapnel, gravity bombs, laser)
+                boss = handle_boss_collisions(
+                    player,
+                    bullets,
+                    shrapnel_grenades,
+                    gravity_bombs,
+                    boss_group,
+                    all_sprites,
+                    debugger,
+                    spawn_shrapnel_explosion,
+                    spawn_gravity_explosion
+                )
 
-                        if e.rect.colliderect(s.rect):
-                            spawn_shrapnel_explosion(s.rect.center, all_sprites, bullets)
-                            shrapnel_grenades.remove(s)
-                            s.kill()
-                            enemies.remove(e)
-                            e.kill()
-                            score += 10
-                            debugger.add_log("Enemy destroyed by shrapnel")
-                            enemy_removed = True
-                            break
-                    if enemy_removed:
-                        continue
+                # 5. Boss death handler (NO level transitions here)
+                result = handle_boss_death(boss_group, score, debugger)
 
-                    # Radial fragments
-                    for b in bullets.copy():
-                        if getattr(b, "is_bomber_fragment", False):
-                            if e.rect.colliderect(b.rect):
-                                bullets.remove(b)
-                                b.kill()
-                                enemies.remove(e)
-                                e.kill()
-                                score += 10
-                                debugger.add_log("Enemy destroyed by fragment")
-                                enemy_removed = True
-                                break
-                    if enemy_removed:
-                        continue
+                if result is not None:
+                    status, score = result
 
-                # --- Player collides with enemies ---
-                for e in enemies.copy():
-                    if player.rect.colliderect(e.rect):
-                        enemies.remove(e)
-                        e.kill()
-                        player.health -= BLOB_DAMAGE
-                        debugger.add_log("Player collided with enemy")
+                    if status == "dead":
+                        # The boss is dead — now YOU handle:
+                        # - victory popup
+                        # - difficulty scaling
+                        # - next level
+                        # - start_level()
+                        # - resetting timers
 
-                        if player.health <= 0:
-                            if not handle_player_death():
-                                running = False
-                        break
+                        result = show_victory_popup(score, level)
 
-                # --- Player collides with asteroids (correct cooldown logic) ---
-                now = pygame.time.get_ticks()
+                        if result == "exit":
+                            running = False
 
-                for a in asteroids.copy():
-                    if player.rect.colliderect(a.rect):
-                        if now - player.last_asteroid_hit > player.asteroid_hit_cooldown:
-                            player.health -= HAZARD_DAMAGE
-                            player.last_asteroid_hit = now
-                            debugger.add_log("Player collided with asteroid")
+                        elif result == "harder":
+                            current_enemy_speed += 0.3
+                            current_boss_speed += 0.3
 
-                            if player.health <= 0:
-                                if not handle_player_death():
-                                    running = False
-                        break
+                        # Next level
+                        boss_spawned = False
+                        level += 1
 
-                # --- Bullets hit asteroids ---
-                for a in asteroids.copy():
-                    for b in bullets.copy():
-                        if a.rect.colliderect(b.rect):
-                            bullets.remove(b)
-                            b.kill()
-                            a.health -= 1
-                            debugger.add_log("Asteroid hit by bullet")
-
-                            if a.health <= 0:
-                                if a.size > 1:
-                                    for _ in range(2):
-                                        new_ast = Asteroid(WIDTH, HEIGHT, pos=a.pos, size=a.size - 1)
-                                        asteroids.add(new_ast)
-                                        all_sprites.add(new_ast)
-                                asteroids.remove(a)
-                                a.kill()
-                            break
-
-                # --- Shrapnel explosions hit asteroids ---
-                for a in asteroids.copy():
-                    for s in shrapnel_grenades.copy():
-                        if s.exploded:
-                            spawn_shrapnel_explosion(s.rect.center, all_sprites, bullets)
-                            shrapnel_grenades.remove(s)
-                            s.kill()
-                            debugger.add_log("Shrapnel explosion hit asteroid")
-                            break
-
-                # --- Gravity bombs ---
-                for g in gravity_bombs.copy():
-                    if g.exploded:
-                        spawn_gravity_explosion(g.rect.center, all_sprites, bullets)
-                        gravity_bombs.remove(g)
-                        g.kill()
-                        debugger.add_log("Gravity bomb exploded")
-                        continue
-
-                    # Pull enemies
-                    for e in enemies:
-                        dist = e.pos.distance_to(g.pos)
-                        if dist < 200:
-                            pull = (g.pos - e.pos).normalize() * 0.4
-                            e.pos += pull
-
-                    # Pull asteroids
-                    for a in asteroids:
-                        dist = a.pos.distance_to(g.pos)
-                        if dist < 200:
-                            pull = (g.pos - a.pos).normalize() * 0.3
-                            a.pos += pull
-
-                # --- Player picks up powerups ---
-                for p in powerups.copy():
-                    if player.rect.colliderect(p.rect):
-                        powerups.remove(p)
-                        p.kill()
-                        player.weapon_mode = "SPREAD"
-                        player.powerup_hits = 0
-                        player.update_appearance()
-                        debugger.add_log("Player picked up powerup")
-
-                # --- Boss damage ---
-                if boss_spawned and len(boss_group) > 0:
-                    boss = boss_group.sprites()[0]
-
-                    # Player bullets hit boss
-                    for b in bullets.copy():
-                        if boss.rect.colliderect(b.rect):
-                            bullets.remove(b)
-                            b.kill()
-                            boss.health -= BULLET_DAMAGE
-                            boss.hit_flash = 5
-                            debugger.add_log("Boss hit by bullet")
-
-                            if boss.health <= 0:
-                                boss.kill()
-                                boss_group.remove(boss)
-                                score += 500
-                                debugger.add_log("Boss defeated")
-
-                                # --- Victory Popup ---
-                                result = show_victory_popup(score, level)
-
-                                if result == "exit":
-                                    running = False
-                                    break
-
-                                if result == "harder":
-                                    current_enemy_speed += 0.3
-                                    current_boss_speed += 0.3
-
-                                # --- Next Level ---
-                                boss_spawned = False
-                                level += 1
-
-                                start_level(
-                                    level, WIDTH, HEIGHT,
-                                    all_sprites, enemies, asteroids,
-                                    current_enemy_speed, enemies_per_side,
-                                    debugger=debugger
-                                )
-
-                                level_start_time = pygame.time.get_ticks()
-
-                            break
-
-                    # Shrapnel hits boss
-                    for s in shrapnel_grenades.copy():
-                        if s.exploded:
-                            spawn_shrapnel_explosion(s.rect.center, all_sprites, bullets)
-                            shrapnel_grenades.remove(s)
-                            s.kill()
-                            boss.health -= SHRAPNEL_DAMAGE
-                            boss.hit_flash = 5
-                            debugger.add_log("Boss hit by shrapnel")
-
-                            if boss.health <= 0:
-                                boss.kill()
-                                boss_group.remove(boss)
-                                score += 500
-                                debugger.add_log("Boss defeated")
-
-                                # --- Victory Popup ---
-                                result = show_victory_popup(score, level)
-
-                                if result == "exit":
-                                    running = False
-                                    break
-
-                                if result == "harder":
-                                    current_enemy_speed += 0.3
-                                    current_boss_speed += 0.3
-
-                                # --- Next Level ---
-                                boss_spawned = False
-                                level += 1
-
-                                start_level(
-                                    level, WIDTH, HEIGHT,
-                                    all_sprites, enemies, asteroids,
-                                    current_enemy_speed, enemies_per_side,
-                                    debugger=debugger
-                                )
-
-                                level_start_time = pygame.time.get_ticks()
-
-                            break
-
-                    # Gravity bomb explosion hits boss
-                    for g in gravity_bombs.copy():
-                        if g.exploded:
-                            spawn_gravity_explosion(g.rect.center, all_sprites, bullets)
-                            gravity_bombs.remove(g)
-                            g.kill()
-                            boss.health -= SHRAPNEL_DAMAGE
-                            boss.hit_flash = 5
-                            debugger.add_log("Boss hit by gravity explosion")
-
-                            if boss.health <= 0:
-                                boss.kill()
-                                boss_group.remove(boss)
-                                score += 500
-                                debugger.add_log("Boss defeated")
-
-                                # --- Victory Popup ---
-                                result = show_victory_popup(score, level)
-
-                                if result == "exit":
-                                    running = False
-                                    break
-
-                                if result == "harder":
-                                    current_enemy_speed += 0.3
-                                    current_boss_speed += 0.3
-
-                                # --- Next Level ---
-                                boss_spawned = False
-                                level += 1
-
-                                start_level(
-                                    level, WIDTH, HEIGHT,
-                                    all_sprites, enemies, asteroids,
-                                    current_enemy_speed, enemies_per_side,
-                                    debugger=debugger
-                                )
-
-                                level_start_time = pygame.time.get_ticks()
-
-                            break
-
-                    # Boss laser hits player
-                    if boss.laser_active_timer > 0:
-                        laser_rect = pygame.Rect(
-                            boss.rect.centerx - 40,
-                            boss.rect.bottom,
-                            80,
-                            HEIGHT
+                        start_level(
+                            level, WIDTH, HEIGHT,
+                            all_sprites, enemies, asteroids,
+                            current_enemy_speed, enemies_per_side,
+                            debugger=debugger
                         )
-                        if laser_rect.colliderect(player.rect):
-                            player.health -= BOSS_DAMAGE
-                            debugger.add_log("Player hit by boss laser")
 
-                            if player.health <= 0:
-                                if not handle_player_death():
-                                    running = False
+                        level_start_time = pygame.time.get_ticks()
 
             except Exception as e:
                 debugger.capture_exception(e, "CollisionHandler")
