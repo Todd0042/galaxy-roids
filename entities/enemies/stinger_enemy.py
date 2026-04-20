@@ -15,6 +15,8 @@ class StingerEnemy(BaseEnemy):
     def __init__(self, pos, width, height, speed=2.0, level=1):
         super().__init__(pos, width, height, speed, level)
         self.type = "STINGER"
+        self.contact_damage = 5
+
 
         # Stinger states
         self.state = "CIRCLING"  # CIRCLING → DASHING → RECOVERY → CIRCLING

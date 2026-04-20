@@ -14,6 +14,8 @@ class BomberEnemy(BaseEnemy):
     def __init__(self, pos, width, height, speed=2.0, level=1):
         super().__init__(pos, width, height, speed, level)
         self.type = "BOMBER"
+        self.contact_damage = 5
+
 
         # Prevent auto-removal by generic collision handler
         self.remove_on_collision = False

@@ -45,6 +45,13 @@ def render_frame(surface, player, groups, state, debugger):
             boss.draw_laser(surface)
 
     # ==========================
+    # Boss Extra Drawing (tails, beams, etc.)
+    # ==========================
+    for boss in groups["boss_group"]:
+        if hasattr(boss, "draw_extra"):
+            boss.draw_extra(surface)
+
+    # ==========================
     # HUD
     # ==========================
     draw_player_health_bar(surface, player, state)

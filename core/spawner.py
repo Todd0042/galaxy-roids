@@ -10,7 +10,7 @@ from entities.powerups import Powerup
 from entities.asteroid import Asteroid
 
 # NEW: Modular boss imports
-from entities.bosses import Boss1, Boss2  # , Boss3, Boss4, Boss5
+from entities.bosses import Boss1, Boss2, Boss3 #, Boss4, Boss5
 
 # Correct enemy imports
 from entities.enemies.regular_enemy import RegularEnemy
@@ -62,9 +62,13 @@ def spawn_random_powerups(state, groups):
         WIDTH = state["WIDTH"]
         HEIGHT = state["HEIGHT"]
 
-        p = Powerup(WIDTH, HEIGHT)
+        spawn_x = random.randint(0, WIDTH)
+        spawn_y = random.randint(0, HEIGHT)
+
+        p = Powerup(spawn_x, spawn_y)
         groups["powerups"].add(p)
         groups["all_sprites"].add(p)
+
 
 
 # ==========================
@@ -80,7 +84,7 @@ def spawn_random_powerups(state, groups):
 BOSS_LIST = [
     Boss1,  # levels 1–2
     Boss2,  # levels 3–4
-    # Boss3,  # levels 5–6
+    Boss3,  # levels 5–6
     # Boss4,  # levels 7–8
     # Boss5,  # levels 9–10
 ]

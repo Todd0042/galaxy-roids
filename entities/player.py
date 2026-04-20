@@ -213,6 +213,24 @@ class Player(pygame.sprite.Sprite):
 
         self.update_appearance()
 
+    def take_damage(self, amount):
+        # Ignore damage if invulnerable
+        if self.invulnerable_timer > 0:
+            return
+
+        # Apply damage
+        self.health -= amount
+
+        # Trigger brief invulnerability (same as explosions)
+        self.invulnerable_timer = 60  # 1 second at 60 FPS
+
+        # Lose powerup level on hit
+        self.lose_powerup_level()
+
+        # Optional: small stun on hit (matches your blob stun system)
+        self.stun_timer = 10
+
+
     # -------------------------------------------------
     #   Explosion damage hook
     # -------------------------------------------------

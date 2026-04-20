@@ -9,6 +9,8 @@ class RegularEnemy(BaseEnemy):
     def __init__(self, pos, width, height, speed=2.0, level=1):
         super().__init__(pos, width, height, speed, level)
         self.type = "REGULAR"
+        self.contact_damage = 5
+
 
         # Shooting parameters (unlocked at level 13)
         self.can_shoot = (level >= 13)

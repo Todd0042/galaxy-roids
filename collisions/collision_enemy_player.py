@@ -1,102 +1,89 @@
 import pygame
+from entities.projectiles import VenomOrb, HazardPool
 from settings import (
-    HAZARD_DAMAGE, BLOB_DAMAGE, BOMBER_DAMAGE, BOSS_DAMAGE,
-    BLOB_STUN_TIME
+    HAZARD_DAMAGE,
+    HAZARD_DOT_INTERVAL,
+    HAZARD_SLOW_MULT,
+    HAZARD_LINGER_MULT,
+    HAZARD_LINGER_TIME,
 )
 
-def handle_enemy_player_collisions(
-    player, groups, state, sfx
-):
-    """
-    Handles:
-    - enemies colliding with player
-    - blob traps
-    - bomber explosions
-    - boss contact damage
-    - enemy bullets hitting player
-    - asteroid collisions
-    """
 
-    enemies = groups["enemies"]
-    enemy_bullets = groups["boss_bullets"]  # or enemy bullets group if separate
-    asteroids = groups["asteroids"]
-    debugger = state.get("debugger", None)
-    current_time = pygame.time.get_ticks()
+def handle_enemy_player_collisions(player, groups, state, sfx):
+    enemies = groups.get("enemies")
+    asteroids = groups.get("asteroids")
+    boss_bullets = groups.get("boss_bullets")
+    hazards = groups.get("hazards")
+    boss_group = groups.get("boss_group")
 
-    # --- Enemy bullets hitting player ---
-    for b in enemy_bullets.copy():
-        if player.rect.colliderect(b.rect):
-            enemy_bullets.remove(b)
-            b.kill()
+    # ------------------------------------------------------------
+    #   PLAYER COLLISION WITH REGULAR ENEMIES
+    # ------------------------------------------------------------
+    if enemies:
+        for enemy in enemies:
+            if player.rect.colliderect(enemy.rect):
+                player.take_damage(enemy.contact_damage)
 
-            if player.invulnerable_timer == 0:
-                player.health -= HAZARD_DAMAGE
-                player.lose_powerup_level()
+    # ------------------------------------------------------------
+    #   PLAYER COLLISION WITH ASTEROIDS
+    # ------------------------------------------------------------
+    if asteroids:
+        for rock in asteroids:
+            if player.rect.colliderect(rock.rect):
+                player.take_damage(rock.contact_damage)
 
-                player.invulnerable_timer = 60
-                if debugger:
-                    debugger.add_log("Player hit by enemy bullet")
+    # ------------------------------------------------------------
+    #   PLAYER COLLISION WITH BOSS BODY
+    # ------------------------------------------------------------
+    if boss_group:
+        for boss in boss_group:
+            if player.rect.colliderect(boss.rect):
+                player.take_damage(10)
 
-    # --- Enemies colliding with player ---
-    for e in enemies.copy():
-        if player.rect.colliderect(e.rect):
+    # ------------------------------------------------------------
+    #   PLAYER COLLISION WITH BOSS BULLETS
+    # ------------------------------------------------------------
+    if boss_bullets:
+        for bullet in boss_bullets:
+            if player.rect.colliderect(bullet.rect):
+                player.take_damage(5)
+                bullet.kill()
 
-            etype = getattr(e, "enemy_type", "")
+    # ============================================================
+    #   HAZARD POOL LOGIC (Boss3)
+    # ============================================================
+    if hazards:
+        player_in_pool = False
 
-            # Blob trap
-            if etype == "BLOB":
-                if player.invulnerable_timer == 0:
-                    player.apply_trap(BLOB_STUN_TIME * 16, BLOB_DAMAGE)
-                    if debugger:
-                        debugger.add_log("Player trapped by blob")
-                continue
+        for pool in hazards:
+            if player.rect.colliderect(pool.rect):
 
-            # Bomber explosion
-            if etype == "BOMBER":
-                if hasattr(e, "explode"):
-                    e.explode()
-                if player.invulnerable_timer == 0:
-                    player.health -= BOMBER_DAMAGE
-                    player.lose_powerup_level()
+                player_in_pool = True
 
-                    player.invulnerable_timer = 60
-                    if debugger:
-                        debugger.add_log("Player hit by bomber explosion")
-                continue
+                # Apply strong slow
+                player.speed_multiplier = HAZARD_SLOW_MULT
 
-            # Boss contact damage
-            if etype == "BOSS":
-                if player.invulnerable_timer == 0:
-                    player.health -= BOSS_DAMAGE
-                    player.lose_powerup_level()
+                # DOT timer
+                if not hasattr(player, "hazard_dot_timer"):
+                    player.hazard_dot_timer = 0
 
-                    player.invulnerable_timer = 60
-                    if debugger:
-                        debugger.add_log("Player hit by boss")
-                continue
+                player.hazard_dot_timer -= 1
+                if player.hazard_dot_timer <= 0:
+                    player.take_damage(HAZARD_DAMAGE)
+                    player.hazard_dot_timer = HAZARD_DOT_INTERVAL
 
-            # Normal enemy collision
-            if player.invulnerable_timer == 0:
-                player.health -= HAZARD_DAMAGE
-                player.lose_powerup_level()
+                # Reset lingering slow timer
+                player.hazard_slow_timer = HAZARD_LINGER_TIME
 
-                player.invulnerable_timer = 60
-                if debugger:
-                    debugger.add_log("Player hit by enemy")
+        # --------------------------------------------------------
+        #   OUTSIDE POOL — lingering slow logic
+        # --------------------------------------------------------
+        if not player_in_pool:
 
-    # --- Asteroids hitting player ---
-    for a in asteroids.copy():
-        if player.rect.colliderect(a.rect):
+            if hasattr(player, "hazard_slow_timer") and player.hazard_slow_timer > 0:
+                player.hazard_slow_timer -= 1
+                player.speed_multiplier = HAZARD_LINGER_MULT
 
-            if current_time - player.last_asteroid_hit > player.asteroid_hit_cooldown:
-                player.last_asteroid_hit = current_time
-
-                if player.invulnerable_timer == 0:
-                    player.health -= HAZARD_DAMAGE
-                    player.lose_powerup_level()
-
-                    player.invulnerable_timer = 60
-                    if debugger:
-                        debugger.add_log("Player hit by asteroid")
-
-    return player.health <= 0
+            else:
+                player.speed_multiplier = 1.0
+                player.hazard_dot_timer = 0

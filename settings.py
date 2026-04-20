@@ -44,8 +44,8 @@ SPREAD_HITS_REVERT = 1
 #   PLAYER WEAPON TIMING
 # ==========================
 
-LASER_FIRE_COOLDOWN = 24        # frames between laser shots
-HOMING_FIRE_COOLDOWN = 48      # frames between missile shots
+LASER_FIRE_COOLDOWN = 4        # frames between laser shots
+HOMING_FIRE_COOLDOWN = 6      # frames between missile shots
 
 
 # Rapid-fire toggle
@@ -61,7 +61,7 @@ BLOB_STUN_TIME = 30  # frames
 HAZARD_DAMAGE = 5
 BLOB_DAMAGE = 5
 BOMBER_DAMAGE = 3
-BOSS_DAMAGE = 30
+BOSS_DAMAGE = 15
 BULLET_DAMAGE = 1
 SHRAPNEL_DAMAGE = 10
 
@@ -69,7 +69,7 @@ SHRAPNEL_DAMAGE = 10
 #   ENEMY SETTINGS
 # ==========================
 ENEMY_SIZE = 25
-ENEMY_HEALTH = 1
+ENEMY_HEALTH = 3
 ENEMY_SPEED = 3 * DIFFICULTY_MULTIPLIER
 ENEMY_DIVE_CHANCE = 0.04 * DIFFICULTY_MULTIPLIER
 
@@ -77,10 +77,10 @@ ENEMY_DIVE_CHANCE = 0.04 * DIFFICULTY_MULTIPLIER
 #   BOSS SETTINGS
 # ==========================
 ENEMY_WAVE_DELAY = 10
-BOSS_SPAWN_TIME = 75000
+BOSS_SPAWN_TIME = 45000
 
-BOSS_HEALTH_BASE = 60 * DIFFICULTY_MULTIPLIER
-BOSS_SPEED_BASE = 0.8 * DIFFICULTY_MULTIPLIER
+BOSS_HEALTH_BASE = 350 * DIFFICULTY_MULTIPLIER
+BOSS_SPEED_BASE = 1.5 * DIFFICULTY_MULTIPLIER
 BOSS_SPEED_SCALE = 1.15
 
 # Laser
@@ -92,8 +92,31 @@ BOSS_LASER_WARNING = 90
 #   PROJECTILES & HAZARDS
 # ==========================
 BULLET_SPEED = 10
-BULLET_LIFESPAN = 500
+BULLET_LIFESPAN = 1500
 
+# ==========================
+#   VENOM ORB & HAZARD POOL
+# ==========================
+
+# Venom Orb physics
+VENOM_ORB_GRAVITY = 0.18
+VENOM_ORB_BOUNCE_FACTOR = -0.45
+VENOM_ORB_SPREAD = ( -0.6, 0, 0.6 )   # firing angles
+VENOM_ORB_SPEED_X = 2.0
+VENOM_ORB_SPEED_Y = 1.5
+
+# Hazard Pool visuals & lifetime
+HAZARD_POOL_DURATION = 240          # frames (~4 seconds)
+HAZARD_POOL_BASE_WIDTH = 90
+HAZARD_POOL_BASE_HEIGHT = 32
+HAZARD_POOL_PULSE_SPEED = 0.01      # pulsing animation speed
+
+# Hazard Pool gameplay effects
+HAZARD_DAMAGE = 2                   # DOT damage per tick
+HAZARD_DOT_INTERVAL = 12            # frames between DOT ticks (~0.2s)
+HAZARD_SLOW_MULT = 0.5              # speed while inside pool
+HAZARD_LINGER_MULT = 0.7            # speed after leaving
+HAZARD_LINGER_TIME = 60             # frames (1 second)
 
 # ==========================
 #   ASTEROIDS

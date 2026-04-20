@@ -44,6 +44,9 @@ class BaseBoss(pygame.sprite.Sprite):
     # -------------------------
     #   SHARED UPDATE LOGIC
     # -------------------------
+        # -------------------------
+    #   SHARED UPDATE LOGIC
+    # -------------------------
     def update(self, **kwargs):
         # NEW: dynamic world size
         state = kwargs.get("state")
@@ -51,13 +54,18 @@ class BaseBoss(pygame.sprite.Sprite):
             self.screen_w = state["WIDTH"]
             self.screen_h = state["HEIGHT"]
 
+        player_pos = kwargs.get("player_pos")
+        groups = kwargs.get("groups")
+
         self.update_entry()
-        self.update_movement()
-        self.update_attacks()
+        self.update_movement(player_pos)
+        self.update_attacks(player_pos, groups, state)
         self.update_timers()
 
         if self.rect:
             self.rect.center = self.pos
+
+
 
     # -------------------------
     #   ENTRY MOVEMENT

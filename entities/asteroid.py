@@ -17,6 +17,7 @@ class Asteroid(pygame.sprite.Sprite):
         self.screen_w = screen_w
         self.screen_h = screen_h
         self.size = size
+        self.contact_damage = 10
 
         self.has_turret = False
         self.fire_cooldown = 0

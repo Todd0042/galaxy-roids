@@ -15,6 +15,8 @@ class BlobEnemy(BaseEnemy):
         super().__init__(pos, width, height, speed, level)
         self.type = "BLOB"
 
+        self.contact_damage = 5
+
         # Blobs don't flap wings — disable animation if you want
         self.wing_speed = 999999  # effectively stops wing animation
 

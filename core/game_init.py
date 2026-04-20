@@ -61,6 +61,7 @@ def initialize_game():
         "shrapnel_grenades": pygame.sprite.Group(),
         "gravity_bombs": pygame.sprite.Group(),
         "powerups": pygame.sprite.Group(),   # holds actual powerup sprites
+        "hazards": pygame.sprite.Group(),
     }
 
     groups["all_sprites"].add(player)
