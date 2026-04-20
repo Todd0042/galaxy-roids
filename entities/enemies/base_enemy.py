@@ -4,7 +4,6 @@ import random
 from effects.splatter import SplatterParticle
 
 
-
 class BaseEnemy(pygame.sprite.Sprite):
     """
     Base class for all enemy types.
@@ -23,8 +22,10 @@ class BaseEnemy(pygame.sprite.Sprite):
         self.rect = pygame.Rect(0, 0, 48, 48)
         self.rect.center = self.pos
 
+        # Initial bounds (dynamic override happens in update)
         self.width = width
         self.height = height
+
         self.speed = speed
         self.level = level
 
@@ -45,7 +46,6 @@ class BaseEnemy(pygame.sprite.Sprite):
     #   SHARED DRAWING HELPERS (subclasses can override)
     # ============================================================
     def draw_body(self):
-        """Default bug body — subclasses override for unique visuals."""
         surf = pygame.Surface((48, 48), pygame.SRCALPHA)
         pygame.draw.ellipse(surf, (20, 120, 20), (10, 14, 28, 20))
         pygame.draw.circle(surf, (10, 80, 10), (24, 18), 10)
@@ -54,7 +54,6 @@ class BaseEnemy(pygame.sprite.Sprite):
         return surf
 
     def draw_wings(self, open_state=True):
-        """Default wing animation — subclasses can override or disable."""
         wings = pygame.Surface((48, 48), pygame.SRCALPHA)
         color = (180, 220, 255, 180)
 
@@ -84,15 +83,12 @@ class BaseEnemy(pygame.sprite.Sprite):
     #   OVERRIDABLE BEHAVIOR HOOKS
     # ============================================================
     def movement_update(self, player_pos):
-        """Subclasses override with movement logic."""
         pass
 
     def attack_update(self, player_pos):
-        """Subclasses override with shooting/dashing/etc."""
         pass
 
     def collision_effect(self, player):
-        """Subclasses override with damage/stun/explosion/etc."""
         pass
 
     # ============================================================
@@ -100,6 +96,12 @@ class BaseEnemy(pygame.sprite.Sprite):
     # ============================================================
     def update(self, **kwargs):
         player_pos = kwargs.get("player_pos")
+        state = kwargs.get("state")
+
+        # NEW: dynamic world bounds
+        if state:
+            self.width = state["WIDTH"]
+            self.height = state["HEIGHT"]
 
         # Shared animation
         self.animate_wings()

@@ -15,23 +15,26 @@ def handle_misc_collisions(player, groups, state, sfx):
     debugger = state.get("debugger", None)
     spawn_shrapnel_explosion = state["spawn_shrapnel_explosion"]
 
+    # -------------------------------------------------
+    # Bullets hitting asteroids
+    # -------------------------------------------------
+    for a in asteroids:
+        if debugger:
+            debugger.add_log(f"[CHECK] Asteroid {id(a)} starting health {a.health}")
 
-    # --- Bullets hitting asteroids ---
-    for a in asteroids.copy():
-        for b in bullets.copy():
+        for b in bullets:
             if a.rect.colliderect(b.rect):
                 bullets.remove(b)
                 b.kill()
 
                 # Reduce asteroid health
                 a.health -= 1
-                debugger.add_log("Asteroid hit by bullet")
+                if debugger:
+                    debugger.add_log(f"[HIT] Asteroid {id(a)} health now {a.health}")
 
-                # Destroy asteroid if health reaches zero
-                if a.health <= 0:
-                    asteroids.remove(a)
-                    a.kill()
-                    debugger.add_log("Asteroid destroyed")
+                # Let Asteroid.update() handle splitting + kill
+                if a.health <= 0 and debugger:
+                    debugger.add_log(f"[PENDING SPLIT] Asteroid {id(a)} reached 0 HP")
 
                     # Spawn powerup randomly
                     import random
@@ -40,27 +43,46 @@ def handle_misc_collisions(player, groups, state, sfx):
                         all_sprites.add(p)
                         debugger.add_log("Powerup spawned")
 
-                break  # Stop checking bullets for this asteroid
+                break  # stop checking more bullets for this asteroid
 
-    # --- Player picking up powerups ---
-    # FIXED: powerups is already a Group, so use powerups.copy()
-    for p in powerups.copy():
-        if player.rect.colliderect(p.rect):
-            powerups.remove(p)
-            p.kill()
-
-            # Apply powerup effect
-            if hasattr(p, "apply"):
-                p.apply(player)
-
-            debugger.add_log("Player picked up powerup")
-
-    # --- Shrapnel grenade explosion triggers ---
+    # -------------------------------------------------
+    # Shrapnel grenades impacting asteroids
+    # (grenade itself should not ghost through)
+    # -------------------------------------------------
     for s in shrapnel_grenades.copy():
-        if s.exploded:
+        for a in asteroids:
+            if s.rect.colliderect(a.rect):
+                # Mark grenade as exploded on impact
+                s.exploded = True
+                if debugger:
+                    debugger.add_log("Shrapnel grenade impacted asteroid (will explode)")
+                break
+
+    # -------------------------------------------------
+    # Player picking up powerups
+    # -------------------------------------------------
+    if powerups is not None:
+        for p in powerups.copy():
+            if player.rect.colliderect(p.rect):
+                powerups.remove(p)
+                p.kill()
+
+                # Apply powerup effect
+                if hasattr(p, "apply"):
+                    p.apply(player)
+
+                if debugger:
+                    debugger.add_log("Player picked up powerup")
+
+    # -------------------------------------------------
+    # Shrapnel grenade explosion triggers
+    # -------------------------------------------------
+    for s in shrapnel_grenades.copy():
+        if getattr(s, "exploded", False):
             spawn_shrapnel_explosion(s.rect.center, all_sprites, bullets)
             shrapnel_grenades.remove(s)
             s.kill()
-            debugger.add_log("Shrapnel grenade exploded")
+            if debugger:
+                debugger.add_log("Shrapnel grenade exploded")
 
     return

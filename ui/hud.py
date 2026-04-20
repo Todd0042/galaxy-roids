@@ -6,9 +6,13 @@ from settings import SHRAPNEL_COOLDOWN_MAX
 #   PLAYER HEALTH BAR
 # ==========================
 
-def draw_player_health_bar(screen, player):
-    bar_width = 200
+def draw_player_health_bar(screen, player, state):
+    WIDTH = state["WIDTH"]
+
+    # Scale bar width slightly with window size, but clamp it
+    bar_width = max(180, min(300, int(WIDTH * 0.20)))
     bar_height = 18
+
     x = 20
     y = 20
 
@@ -37,9 +41,12 @@ def draw_player_health_bar(screen, player):
 #   SHRAPNEL COOLDOWN BAR
 # ==========================
 
-def draw_shrapnel_cooldown(screen, player):
-    bar_width = 200
+def draw_shrapnel_cooldown(screen, player, state):
+    WIDTH = state["WIDTH"]
+
+    bar_width = max(180, min(300, int(WIDTH * 0.20)))
     bar_height = 12
+
     x = 20
     y = 50
 
@@ -68,13 +75,17 @@ def draw_shrapnel_cooldown(screen, player):
 #     BOSS HEALTH BAR
 # ==========================
 
-def draw_boss_health_bar(screen, boss, screen_width):
+def draw_boss_health_bar(screen, boss, state):
     if boss is None:
         return
 
-    bar_width = 220
+    WIDTH = state["WIDTH"]
+
+    # Boss bar scales with window width
+    bar_width = max(220, min(400, int(WIDTH * 0.25)))
     bar_height = 20
-    x = screen_width - bar_width - 20
+
+    x = WIDTH - bar_width - 20
     y = 20
 
     ratio = max(boss.health / boss.max_health, 0)

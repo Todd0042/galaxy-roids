@@ -2,19 +2,25 @@ import pygame
 from settings import BLACK, WHITE, CYAN, GOLDEN_YELLOW
 
 
-def run_level_select(font):
+def run_level_select(font, state):
     """
     Displays the starting level selection screen.
     Returns the selected starting level (int).
     """
 
     screen = pygame.display.get_surface()
-    WIDTH, HEIGHT = screen.get_size()
 
     selected_start_level = 1
     waiting_for_start = True
 
     while waiting_for_start:
+        # ⭐ Always get the current window size
+        WIDTH, HEIGHT = screen.get_size()
+
+        # ⭐ Update game state so the playable area matches
+        state["WIDTH"] = WIDTH
+        state["HEIGHT"] = HEIGHT
+
         screen.fill(BLACK)
 
         # --- Text surfaces ---
@@ -26,10 +32,15 @@ def run_level_select(font):
             GOLDEN_YELLOW
         )
 
-        # --- Draw text ---
-        screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, HEIGHT // 2 - 40))
-        screen.blit(level_text, (WIDTH // 2 - level_text.get_width() // 2, HEIGHT // 2))
-        screen.blit(prompt_text, (WIDTH // 2 - prompt_text.get_width() // 2, HEIGHT // 2 + 40))
+        # --- Draw text centered using updated WIDTH/HEIGHT ---
+        screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2,
+                                 HEIGHT // 2 - 40))
+
+        screen.blit(level_text, (WIDTH // 2 - level_text.get_width() // 2,
+                                 HEIGHT // 2))
+
+        screen.blit(prompt_text, (WIDTH // 2 - prompt_text.get_width() // 2,
+                                  HEIGHT // 2 + 40))
 
         pygame.display.flip()
 

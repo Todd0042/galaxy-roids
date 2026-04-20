@@ -16,8 +16,10 @@ class BaseBoss(pygame.sprite.Sprite):
     def __init__(self, screen_w, screen_h, level, speed):
         super().__init__()
 
+        # Initial bounds (dynamic override happens in update)
         self.screen_w = screen_w
         self.screen_h = screen_h
+
         self.level = level
         self.speed = speed
 
@@ -42,14 +44,28 @@ class BaseBoss(pygame.sprite.Sprite):
     # -------------------------
     #   SHARED UPDATE LOGIC
     # -------------------------
+        # -------------------------
+    #   SHARED UPDATE LOGIC
+    # -------------------------
     def update(self, **kwargs):
+        # NEW: dynamic world size
+        state = kwargs.get("state")
+        if state:
+            self.screen_w = state["WIDTH"]
+            self.screen_h = state["HEIGHT"]
+
+        player_pos = kwargs.get("player_pos")
+        groups = kwargs.get("groups")
+
         self.update_entry()
-        self.update_movement()
-        self.update_attacks()
+        self.update_movement(player_pos)
+        self.update_attacks(player_pos, groups, state)
         self.update_timers()
 
         if self.rect:
             self.rect.center = self.pos
+
+
 
     # -------------------------
     #   ENTRY MOVEMENT

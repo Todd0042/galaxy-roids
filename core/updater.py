@@ -1,7 +1,7 @@
 import pygame
 
 
-def update_all_sprites(player, joysticks, groups, debugger):
+def update_all_sprites(player, joysticks, groups, debugger, state):
     """
     Updates all sprites in the game, including trails.
     Mirrors the original main.py update block exactly.
@@ -11,6 +11,7 @@ def update_all_sprites(player, joysticks, groups, debugger):
         joysticks   – list of joystick objects
         groups      – dict of sprite groups
         debugger    – DebuggerOverlay instance
+        state       – dynamic game state (WIDTH, HEIGHT, etc.)
     """
 
     all_sprites = groups["all_sprites"]
@@ -26,17 +27,19 @@ def update_all_sprites(player, joysticks, groups, debugger):
                 joysticks=joysticks,
                 trail_group=trail_group,
                 boss_bullets=boss_bullets,
-                all_sprites=all_sprites
+                all_sprites=all_sprites,
+                groups=groups,        # ⭐ CRITICAL LINE
+                state=state
             )
+
 
             debugger.add_log(f"Updated: {sprite.__class__.__name__}")
 
         # Trails update separately
-        trail_group.update()
+        trail_group.update(state=state)
 
     except Exception as e:
         debugger.capture_exception(e, debugger.last_sprite)
-        # Skip the rest of the frame, just like original behavior
         return False
 
     return True
