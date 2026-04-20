@@ -38,7 +38,17 @@ def handle_boss_collisions(player, groups, state, sfx):
             boss.health -= BULLET_DAMAGE
             boss.hit_flash = 5
 
+            # ⭐ AUDIO: boss hit
+            ch = pygame.mixer.find_channel()
+            if ch and sfx.get(boss.sound_hit):
+                ch.play(sfx[boss.sound_hit])
+
             if boss.health <= 0:
+                # ⭐ AUDIO: boss death
+                ch = pygame.mixer.find_channel()
+                if ch and sfx.get(boss.sound_death):
+                    ch.play(sfx[boss.sound_death])
+
                 boss.kill()
                 boss_group.remove(boss)
                 return True
@@ -54,7 +64,17 @@ def handle_boss_collisions(player, groups, state, sfx):
             boss.health -= SHRAPNEL_DAMAGE
             boss.hit_flash = 5
 
+            # ⭐ AUDIO: boss hit
+            ch = pygame.mixer.find_channel()
+            if ch and sfx.get(boss.sound_hit):
+                ch.play(sfx[boss.sound_hit])
+
             if boss.health <= 0:
+                # ⭐ AUDIO: boss death
+                ch = pygame.mixer.find_channel()
+                if ch and sfx.get(boss.sound_death):
+                    ch.play(sfx[boss.sound_death])
+
                 boss.kill()
                 boss_group.remove(boss)
                 return True
@@ -70,7 +90,17 @@ def handle_boss_collisions(player, groups, state, sfx):
             boss.health -= SHRAPNEL_DAMAGE
             boss.hit_flash = 5
 
+            # ⭐ AUDIO: boss hit
+            ch = pygame.mixer.find_channel()
+            if ch and sfx.get(boss.sound_hit):
+                ch.play(sfx[boss.sound_hit])
+
             if boss.health <= 0:
+                # ⭐ AUDIO: boss death
+                ch = pygame.mixer.find_channel()
+                if ch and sfx.get(boss.sound_death):
+                    ch.play(sfx[boss.sound_death])
+
                 boss.kill()
                 boss_group.remove(boss)
                 return True
@@ -90,6 +120,14 @@ def handle_boss_collisions(player, groups, state, sfx):
             player.health -= BOSS_DAMAGE
             player.lose_powerup_level()
 
+            # ⭐ AUDIO: boss laser hit
+            ch = pygame.mixer.find_channel()
+            if ch and sfx.get(boss.sound_laser_fire):
+                ch.play(sfx[boss.sound_laser_fire])
+
+            # ⭐ SHAKE: laser impact
+            state["screenshake"] = max(state.get("screenshake", 0), 8)
+
     # -----------------------------
     # Boss tail strike (Boss3)
     # -----------------------------
@@ -102,9 +140,42 @@ def handle_boss_collisions(player, groups, state, sfx):
         )
 
         if strike_rect.colliderect(player.rect):
-            # Use boss.tail_damage if available, fallback to BOSS_DAMAGE
             dmg = getattr(boss, "tail_damage", BOSS_DAMAGE)
             player.health -= dmg
             player.lose_powerup_level()
+
+            # ⭐ AUDIO: tail strike
+            ch = pygame.mixer.find_channel()
+            if ch:
+                if sfx.get(boss.sound_tail_strike):
+                    ch.play(sfx[boss.sound_tail_strike])
+                elif sfx.get("boss_hit"):
+                    ch.play(sfx["boss_hit"])
+
+            # ⭐ SHAKE: tail strike impact
+            state["screenshake"] = max(state.get("screenshake", 0), 14)
+
+    # -----------------------------
+    # Boss2 Laser Beams → player
+    # -----------------------------
+    for laser in groups.get("boss_bullets", []):
+        if laser.__class__.__name__ == "Boss2LaserBeam":
+
+            # Skip beams that haven't run update() yet
+            if not hasattr(laser, "world_hitbox"):
+                continue
+
+            if player.rect.colliderect(laser.world_hitbox):
+                player.health -= laser.damage
+                player.lose_powerup_level()
+
+                # ⭐ AUDIO: laser hit
+                ch = pygame.mixer.find_channel()
+                if ch and sfx.get(boss.sound_laser_fire):
+                    ch.play(sfx[boss.sound_laser_fire])
+
+                # ⭐ SHAKE: laser impact
+                state["screenshake"] = max(state.get("screenshake", 0), 10)
+
 
     return False

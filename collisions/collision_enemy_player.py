@@ -9,6 +9,12 @@ from settings import (
 )
 
 
+def circle_hit(a_center, a_r, b_center, b_r):
+    dx = a_center.x - b_center.x
+    dy = a_center.y - b_center.y
+    return (dx*dx + dy*dy) < (a_r + b_r) * (a_r + b_r)
+
+
 def handle_enemy_player_collisions(player, groups, state, sfx):
     enemies = groups.get("enemies")
     asteroids = groups.get("asteroids")
@@ -21,33 +27,69 @@ def handle_enemy_player_collisions(player, groups, state, sfx):
     # ------------------------------------------------------------
     if enemies:
         for enemy in enemies:
-            if player.rect.colliderect(enemy.rect):
+
+            if not hasattr(enemy, "hitbox_radius"):
+                enemy.hitbox_radius = enemy.rect.width * 0.35
+            enemy.hitbox_center = pygame.Vector2(enemy.rect.center)
+
+            if circle_hit(player.hitbox_center, player.hitbox_radius,
+                          enemy.hitbox_center, enemy.hitbox_radius):
                 player.take_damage(enemy.contact_damage)
+
+                if player.health <= 0:
+                    return True
 
     # ------------------------------------------------------------
     #   PLAYER COLLISION WITH ASTEROIDS
     # ------------------------------------------------------------
     if asteroids:
         for rock in asteroids:
-            if player.rect.colliderect(rock.rect):
+
+            if not hasattr(rock, "hitbox_radius"):
+                rock.hitbox_radius = rock.rect.width * 0.45
+            rock.hitbox_center = pygame.Vector2(rock.rect.center)
+
+            if circle_hit(player.hitbox_center, player.hitbox_radius,
+                          rock.hitbox_center, rock.hitbox_radius):
                 player.take_damage(rock.contact_damage)
+
+                if player.health <= 0:
+                    return True
 
     # ------------------------------------------------------------
     #   PLAYER COLLISION WITH BOSS BODY
     # ------------------------------------------------------------
     if boss_group:
         for boss in boss_group:
-            if player.rect.colliderect(boss.rect):
+
+            if not hasattr(boss, "hitbox_radius"):
+                boss.hitbox_radius = boss.rect.width * 0.45
+            boss.hitbox_center = pygame.Vector2(boss.rect.center)
+
+            if circle_hit(player.hitbox_center, player.hitbox_radius,
+                          boss.hitbox_center, boss.hitbox_radius):
                 player.take_damage(10)
+
+                if player.health <= 0:
+                    return True
 
     # ------------------------------------------------------------
     #   PLAYER COLLISION WITH BOSS BULLETS
     # ------------------------------------------------------------
     if boss_bullets:
         for bullet in boss_bullets:
-            if player.rect.colliderect(bullet.rect):
+
+            if not hasattr(bullet, "hitbox_radius"):
+                bullet.hitbox_radius = bullet.rect.width * 0.3
+            bullet.hitbox_center = pygame.Vector2(bullet.rect.center)
+
+            if circle_hit(player.hitbox_center, player.hitbox_radius,
+                          bullet.hitbox_center, bullet.hitbox_radius):
                 player.take_damage(5)
                 bullet.kill()
+
+                if player.health <= 0:
+                    return True
 
     # ============================================================
     #   HAZARD POOL LOGIC (Boss3)
@@ -72,6 +114,9 @@ def handle_enemy_player_collisions(player, groups, state, sfx):
                     player.take_damage(HAZARD_DAMAGE)
                     player.hazard_dot_timer = HAZARD_DOT_INTERVAL
 
+                    if player.health <= 0:
+                        return True
+
                 # Reset lingering slow timer
                 player.hazard_slow_timer = HAZARD_LINGER_TIME
 
@@ -87,3 +132,11 @@ def handle_enemy_player_collisions(player, groups, state, sfx):
             else:
                 player.speed_multiplier = 1.0
                 player.hazard_dot_timer = 0
+
+    # ============================================================
+    #   FINAL DEATH CHECK (centralized)
+    # ============================================================
+    if player.health <= 0:
+        return True
+
+    return False

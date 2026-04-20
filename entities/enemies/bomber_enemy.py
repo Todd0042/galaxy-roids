@@ -13,9 +13,16 @@ BOMBER_DAMAGE = 25
 class BomberEnemy(BaseEnemy):
     def __init__(self, pos, width, height, speed=2.0, level=1):
         super().__init__(pos, width, height, speed, level)
+        
         self.type = "BOMBER"
         self.contact_damage = 5
 
+        self.spawn_delay = 2000  # ms
+        self.last_update_time = pygame.time.get_ticks()
+
+
+        # ⭐ NEW: 2-second freeze after spawning
+        self.spawn_delay = 2000  # milliseconds
 
         # Prevent auto-removal by generic collision handler
         self.remove_on_collision = False
@@ -63,6 +70,15 @@ class BomberEnemy(BaseEnemy):
     # -----------------------------------------------------------
     def movement_update(self, player_pos):
         now = pygame.time.get_ticks()
+
+        # ⭐ NEW: freeze bomber for 2 seconds after spawning
+        if self.spawn_delay > 0:
+            self.spawn_delay -= (now - self.last_update_time)
+            self.last_update_time = now
+            return
+
+        # Update last_update_time for next frame
+        self.last_update_time = now
 
         # -------------------------------
         #   CHARGING (glow-up)

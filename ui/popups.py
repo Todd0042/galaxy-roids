@@ -19,13 +19,16 @@ def popup_menu_loop(title, lines, options):
     small_font = pygame.font.SysFont("Arial", 22)
 
     screen = pygame.display.get_surface()
-    WIDTH, HEIGHT = screen.get_size()
 
     selected = 0
     clock = pygame.time.Clock()
 
+    # ⭐ Mouse click debounce
+    mouse_was_down = False
+
     while True:
         clock.tick(60)
+        WIDTH, HEIGHT = screen.get_size()
         screen.fill((0, 0, 0))
 
         # --- Title ---
@@ -40,16 +43,40 @@ def popup_menu_loop(title, lines, options):
             y += 30
 
         # --- Options ---
+        option_rects = []
         y += 40
         for i, (label, _) in enumerate(options):
             color = (255, 255, 255) if i == selected else (150, 150, 150)
             opt_surf = font.render(label, True, color)
-            screen.blit(opt_surf, (WIDTH // 2 - opt_surf.get_width() // 2, y))
+            pos = (WIDTH // 2 - opt_surf.get_width() // 2, y)
+            screen.blit(opt_surf, pos)
+
+            # Store clickable rect
+            rect = pygame.Rect(pos[0], pos[1], opt_surf.get_width(), opt_surf.get_height())
+            option_rects.append(rect)
+
             y += 50
 
         pygame.display.flip()
 
-        # --- Input ---
+        # --- Mouse handling ---
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        mouse_down = pygame.mouse.get_pressed()[0]
+
+        # Hover selects option
+        for i, rect in enumerate(option_rects):
+            if rect.collidepoint(mouse_x, mouse_y):
+                selected = i
+
+        # Debounced click
+        if mouse_down and not mouse_was_down:
+            for i, rect in enumerate(option_rects):
+                if rect.collidepoint(mouse_x, mouse_y):
+                    return options[i][1]
+
+        mouse_was_down = mouse_down
+
+        # --- Keyboard handling ---
         for event in pygame.event.get():
 
             if event.type == pygame.QUIT:

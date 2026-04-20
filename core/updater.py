@@ -32,11 +32,39 @@ def update_all_sprites(player, joysticks, groups, debugger, state):
                 state=state
             )
 
-
             debugger.add_log(f"Updated: {sprite.__class__.__name__}")
 
         # Trails update separately
-        trail_group.update(state=state)
+        trail_group.update()
+
+
+        # ==========================================================
+        # ⭐ MUSIC: Smooth fade to boss theme before boss spawns
+        # ==========================================================
+        sfx = state.get("sfx")
+        if sfx and sfx.get("play_music"):
+
+            # Dynamic boss spawn time (can be overridden per level)
+            boss_time = state.get("boss_spawn_time", state.get("BOSS_SPAWN_TIME", 45000))
+
+            elapsed = pygame.time.get_ticks() - state["level_start_time"]
+
+            # Trigger fade 5 seconds before boss spawn
+            if not state.get("boss_music_started", False):
+                if elapsed >= boss_time - 5000:
+
+                    # ⭐ Correct call:
+                    # - No "assets/music/" prefix (loader adds it)
+                    # - No fade_ms here (play_music handles fade)
+                    sfx["play_music"](
+                        "boss_theme.ogg",
+                        volume=0.6,
+                        loop=-1,
+                        fade_ms=2000
+                    )
+
+                    state["boss_music_started"] = True
+
 
     except Exception as e:
         debugger.capture_exception(e, debugger.last_sprite)

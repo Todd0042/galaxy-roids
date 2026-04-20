@@ -24,9 +24,13 @@ ORANGE = (255, 140, 0)
 # ==========================
 #   PLAYER SETTINGS
 # ==========================
-PLAYER_SIZE = 30
 PLAYER_MAX_HEALTH = 100
 INITIAL_LIVES = 15
+PLAYER_SCALE = 0.25
+PLAYER_HITBOX_RADIUS = 4.5
+PLAYER_INVULN_TIME = 60
+PLAYER_STUN_TIME = 10
+PLAYER_SIZE = 30
 
 # Movement
 PLAYER_ROT_SPEED = 5
@@ -34,6 +38,8 @@ PLAYER_THRUST = 0.2
 PLAYER_FRICTION = 0.98
 PLAYER_REVERSE_THRUST = 0.03
 PLAYER_BRAKE_FRICTION = 0.95
+# Rotation speed (degrees per frame)
+PLAYER_ROT_SPEED = 4
 
 # --- Combat ---
 PLAYER_FIRE_RATE = 10
@@ -44,12 +50,13 @@ SPREAD_HITS_REVERT = 1
 #   PLAYER WEAPON TIMING
 # ==========================
 
-LASER_FIRE_COOLDOWN = 4        # frames between laser shots
-HOMING_FIRE_COOLDOWN = 6      # frames between missile shots
+LASER_FIRE_COOLDOWN = 10        # frames between laser shots
+HOMING_FIRE_COOLDOWN = 20      # frames between missile shots
 
 
 # Rapid-fire toggle
 ENABLE_RAPID_FIRE = True
+RAPID_FIRE_COOLDOWN = 20
 RAPID_FIRE_REQUIRED_POWERUPS = 2
 
 # Status Effects
@@ -77,9 +84,8 @@ ENEMY_DIVE_CHANCE = 0.04 * DIFFICULTY_MULTIPLIER
 #   BOSS SETTINGS
 # ==========================
 ENEMY_WAVE_DELAY = 10
-BOSS_SPAWN_TIME = 45000
+BOSS_SPAWN_TIME = 10000  ## IMPORTANT!! Bott Time in stage!!
 
-BOSS_HEALTH_BASE = 350 * DIFFICULTY_MULTIPLIER
 BOSS_SPEED_BASE = 1.5 * DIFFICULTY_MULTIPLIER
 BOSS_SPEED_SCALE = 1.15
 
@@ -87,6 +93,13 @@ BOSS_SPEED_SCALE = 1.15
 BOSS_LASER_COOLDOWN = 600
 BOSS_LASER_DURATION = 180
 BOSS_LASER_WARNING = 90
+
+# ============================
+#   BOSS HEALTH SETTINGS
+# ============================
+BOSS_HEALTH_BASE = 350 * DIFFICULTY_MULTIPLIER
+MAX_BOSS_HEALTH = 2000   # hard cap for all bosses
+
 
 # ==========================
 #   PROJECTILES & HAZARDS
