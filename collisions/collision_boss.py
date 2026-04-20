@@ -1,14 +1,20 @@
 import pygame
 from settings import BULLET_DAMAGE, SHRAPNEL_DAMAGE, BOSS_DAMAGE
 
+# ---------------------------------------------------------
+#   Circular hitbox helper
+# ---------------------------------------------------------
+def circle_hit(pos1, r1, pos2, r2):
+    return (pos1 - pos2).length_squared() <= (r1 + r2) ** 2
+
 
 def handle_boss_collisions(player, groups, state, sfx):
     """
     Handles:
-    - player bullets hitting boss
-    - shrapnel hitting boss
-    - gravity bombs hitting boss
-    - boss laser hitting player
+    - player bullets → boss
+    - shrapnel → boss
+    - gravity bombs → boss
+    - boss laser → player
 
     Returns:
         True  – boss died this frame
@@ -21,18 +27,22 @@ def handle_boss_collisions(player, groups, state, sfx):
 
     boss = next(iter(boss_group))
 
+    # Boss hitbox radius (fallback if not defined)
+    br = getattr(boss, "hitbox_radius", 40)
+
     bullets = groups["bullets"]
     shrapnel = groups["shrapnel_grenades"]
     gravity = groups["gravity_bombs"]
-    all_sprites = groups["all_sprites"]
 
-    # -----------------------------
-    # Player bullets → boss
-    # -----------------------------
+    # ---------------------------------------------------------
+    #   Player bullets → Boss
+    # ---------------------------------------------------------
     for b in bullets.copy():
-        if boss.rect.colliderect(b.rect):
-            b.kill()
+        br2 = getattr(b, "hitbox_radius", 4)
+
+        if circle_hit(boss.pos, br, b.pos, br2):
             bullets.remove(b)
+            b.kill()
 
             boss.health -= BULLET_DAMAGE
             boss.hit_flash = 5
@@ -42,13 +52,28 @@ def handle_boss_collisions(player, groups, state, sfx):
                 boss_group.remove(boss)
                 return True
 
-    # -----------------------------
-    # Shrapnel → boss
-    # -----------------------------
+    # ---------------------------------------------------------
+    #   Shrapnel → Boss
+    # ---------------------------------------------------------
     for s in shrapnel.copy():
+        sr = getattr(s, "hitbox_radius", 6)
+
         if s.exploded:
-            s.kill()
             shrapnel.remove(s)
+            s.kill()
+
+            boss.health -= SHRAPNEL_DAMAGE
+            boss.hit_flash = 5
+
+            if boss.health <= 0:
+                boss.kill()
+                boss_group.remove(boss)
+                return True
+            continue
+
+        if circle_hit(boss.pos, br, s.pos, sr):
+            shrapnel.remove(s)
+            s.kill()
 
             boss.health -= SHRAPNEL_DAMAGE
             boss.hit_flash = 5
@@ -58,13 +83,28 @@ def handle_boss_collisions(player, groups, state, sfx):
                 boss_group.remove(boss)
                 return True
 
-    # -----------------------------
-    # Gravity bomb → boss
-    # -----------------------------
+    # ---------------------------------------------------------
+    #   Gravity Bomb → Boss
+    # ---------------------------------------------------------
     for g in gravity.copy():
+        gr = getattr(g, "hitbox_radius", 14)
+
         if g.exploded:
-            g.kill()
             gravity.remove(g)
+            g.kill()
+
+            boss.health -= SHRAPNEL_DAMAGE
+            boss.hit_flash = 5
+
+            if boss.health <= 0:
+                boss.kill()
+                boss_group.remove(boss)
+                return True
+            continue
+
+        if circle_hit(boss.pos, br, g.pos, gr):
+            gravity.remove(g)
+            g.kill()
 
             boss.health -= SHRAPNEL_DAMAGE
             boss.hit_flash = 5
@@ -74,20 +114,32 @@ def handle_boss_collisions(player, groups, state, sfx):
                 boss_group.remove(boss)
                 return True
 
-    # -----------------------------
-    # Boss laser → player
-    # -----------------------------
+    # ---------------------------------------------------------
+    #   Boss Laser → Player
+    # ---------------------------------------------------------
     if boss.laser_active_timer > 0:
-        laser_rect = pygame.Rect(
-            boss.rect.centerx - 40,
-            boss.rect.bottom,
-            80,
-            state["HEIGHT"]
-        )
+        # Laser is a vertical beam under the boss
+        laser_x = boss.pos.x
+        laser_top = boss.pos.y
+        laser_bottom = state["HEIGHT"]
 
-        if laser_rect.colliderect(player.rect):
-            player.health -= BOSS_DAMAGE
-            player.lose_powerup_level()
+        # Player hitbox
+        ppos = player.hit_pos
+        pr = player.hitbox_radius
 
+        # Horizontal distance from beam center
+        dx = abs(ppos.x - laser_x)
+
+        # Beam half-width (80px wide → 40px half)
+        beam_half_width = 40
+
+        # Vertical check: player must be below boss
+        if ppos.y > laser_top:
+            # Horizontal check: within beam width + player radius
+            if dx <= beam_half_width + pr:
+                if player.invulnerable_timer == 0:
+                    player.health -= BOSS_DAMAGE
+                    player.lose_powerup_level()
+                    player.invulnerable_timer = 60
 
     return False

@@ -7,7 +7,16 @@ from settings import (
     SHRAPNEL_DAMAGE, RED
 )
 
+# ---------------------------------------------------------
+#   Helper: forward vector is UP (0, -1)
+# ---------------------------------------------------------
+def forward_vector(angle):
+    return pygame.Vector2(0, -1).rotate(angle)
 
+
+# ==========================
+#   NORMAL BULLET
+# ==========================
 class Bullet(pygame.sprite.Sprite):
     def __init__(
         self,
@@ -29,8 +38,9 @@ class Bullet(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=pos)
 
         self.pos = pygame.Vector2(pos)
-        self.vel = pygame.Vector2(BULLET_SPEED, 0).rotate(angle)
+        self.vel = forward_vector(angle) * BULLET_SPEED
 
+        self.hitbox_radius = size * 0.5
         self.is_bomber_fragment = is_bomber_fragment
 
     def update(self, **kwargs):
@@ -46,6 +56,9 @@ class Bullet(pygame.sprite.Sprite):
             self.kill()
 
 
+# ==========================
+#   SHRAPNEL BULLET
+# ==========================
 class ShrapnelBullet(pygame.sprite.Sprite):
     def __init__(self, pos, angle, screen_w, screen_h):
         super().__init__()
@@ -58,9 +71,11 @@ class ShrapnelBullet(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=pos)
 
         self.pos = pygame.Vector2(pos)
-        self.vel = pygame.Vector2(6, 0).rotate(angle)
+        self.vel = forward_vector(angle) * 6
         self.timer = 40
         self.exploded = False
+
+        self.hitbox_radius = 6
 
     def update(self, **kwargs):
         self.pos += self.vel
@@ -70,11 +85,16 @@ class ShrapnelBullet(pygame.sprite.Sprite):
         if self.timer <= 0:
             self.exploded = True
 
-        if (self.pos.x < -50 or self.pos.x > self.screen_w + 50 or
-            self.pos.y < -50 or self.pos.y > self.screen_h + 50):
+        if (
+            self.pos.x < -50 or self.pos.x > self.screen_w + 50 or
+            self.pos.y < -50 or self.pos.y > self.screen_h + 50
+        ):
             self.kill()
 
 
+# ==========================
+#   GRAVITY BOMB
+# ==========================
 class GravityBomb(pygame.sprite.Sprite):
     def __init__(self, pos, angle, screen_w, screen_h, target_dist):
         super().__init__()
@@ -86,11 +106,13 @@ class GravityBomb(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=pos)
 
         self.pos = pygame.Vector2(pos)
-        self.vel = pygame.Vector2(4, 0).rotate(angle)
+        self.vel = forward_vector(angle) * 4
 
         self.target_dist = target_dist
         self.dist_traveled = 0
         self.exploded = False
+
+        self.hitbox_radius = 14
 
     def update(self, **kwargs):
         self.pos += self.vel
@@ -112,9 +134,8 @@ class GravityBomb(pygame.sprite.Sprite):
 
 
 # ==========================
-#   LASER BEAM (Powerup 4)
+#   LASER BEAM
 # ==========================
-
 class LaserBeam(pygame.sprite.Sprite):
     def __init__(self, pos, direction, screen_w, screen_h):
         super().__init__()
@@ -122,15 +143,14 @@ class LaserBeam(pygame.sprite.Sprite):
         self.screen_w = screen_w
         self.screen_h = screen_h
 
-        # Long cyan beam
         self.image = pygame.Surface((6, 40), pygame.SRCALPHA)
         pygame.draw.rect(self.image, (0, 255, 255), (0, 0, 6, 40))
         self.rect = self.image.get_rect(center=pos)
 
         self.pos = pygame.Vector2(pos)
-        self.vel = pygame.Vector2(direction) * 25  # very fast
+        self.vel = pygame.Vector2(direction) * 25
 
-        # Pierces enemies — no hit counter
+        self.hitbox_radius = 3
 
     def update(self, **kwargs):
         self.pos += self.vel
@@ -146,9 +166,8 @@ class LaserBeam(pygame.sprite.Sprite):
 
 
 # ==========================
-#   HOMING MISSILE (Powerup 5 & 6)
+#   HOMING MISSILE
 # ==========================
-
 class HomingMissile(pygame.sprite.Sprite):
     def __init__(self, pos, direction, screen_w, screen_h, groups, launch_frames=18):
         super().__init__()
@@ -167,6 +186,8 @@ class HomingMissile(pygame.sprite.Sprite):
         self.launch_timer = launch_frames
         self.target = None
         self.speed = 8
+
+        self.hitbox_radius = 6
 
     def acquire_target(self):
         enemies = self.groups_ref["enemies"]
@@ -215,49 +236,3 @@ class HomingMissile(pygame.sprite.Sprite):
             self.pos.y > self.screen_h
         ):
             self.kill()
-
-
-# ==========================
-#   EXPLOSION HELPERS
-# ==========================
-
-def spawn_shrapnel_explosion(center, all_sprites=None, group=None):
-    if group is None:
-        return
-
-    for i in range(12):
-        angle = i * 30
-        frag = Bullet(
-            center,
-            angle,
-            9999,
-            9999,
-            color=(255, 200, 0),
-            size=4,
-            is_bomber_fragment=True
-        )
-        frag.vel *= 0.6
-        group.add(frag)
-        if all_sprites:
-            all_sprites.add(frag)
-
-
-def spawn_gravity_explosion(center, all_sprites=None, group=None):
-    if group is None:
-        return
-
-    for i in range(20):
-        angle = i * 18
-        frag = Bullet(
-            center,
-            angle,
-            9999,
-            9999,
-            color=RED,
-            size=6,
-            is_bomber_fragment=True
-        )
-        frag.vel *= 0.4
-        group.add(frag)
-        if all_sprites:
-            all_sprites.add(frag)

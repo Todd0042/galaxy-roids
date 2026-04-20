@@ -4,99 +4,119 @@ from settings import (
     BLOB_STUN_TIME
 )
 
-def handle_enemy_player_collisions(
-    player, groups, state, sfx
-):
+# ---------------------------------------------------------
+#   Circular hitbox helper
+# ---------------------------------------------------------
+def circle_hit(pos1, r1, pos2, r2):
+    return (pos1 - pos2).length_squared() <= (r1 + r2) ** 2
+
+
+def handle_enemy_player_collisions(player, groups, state, sfx):
     """
     Handles:
-    - enemies colliding with player
+    - enemy bullets → player
+    - enemies → player
     - blob traps
     - bomber explosions
     - boss contact damage
-    - enemy bullets hitting player
     - asteroid collisions
     """
 
     enemies = groups["enemies"]
-    enemy_bullets = groups["boss_bullets"]  # or enemy bullets group if separate
+    enemy_bullets = groups["boss_bullets"]
     asteroids = groups["asteroids"]
     debugger = state.get("debugger", None)
     current_time = pygame.time.get_ticks()
 
-    # --- Enemy bullets hitting player ---
+    ppos = player.hit_pos
+    pr = player.hitbox_radius
+
+    # ---------------------------------------------------------
+    #   Enemy bullets → player
+    # ---------------------------------------------------------
     for b in enemy_bullets.copy():
-        if player.rect.colliderect(b.rect):
+        if circle_hit(ppos, pr, b.pos, getattr(b, "hitbox_radius", 4)):
             enemy_bullets.remove(b)
             b.kill()
 
             if player.invulnerable_timer == 0:
                 player.health -= HAZARD_DAMAGE
                 player.lose_powerup_level()
-
                 player.invulnerable_timer = 60
+
                 if debugger:
                     debugger.add_log("Player hit by enemy bullet")
 
-    # --- Enemies colliding with player ---
+    # ---------------------------------------------------------
+    #   Enemies → player
+    # ---------------------------------------------------------
     for e in enemies.copy():
-        if player.rect.colliderect(e.rect):
+        er = getattr(e, "hitbox_radius", 12)
 
-            etype = getattr(e, "enemy_type", "")
+        if not circle_hit(ppos, pr, e.pos, er):
+            continue
 
-            # Blob trap
-            if etype == "BLOB":
-                if player.invulnerable_timer == 0:
-                    player.apply_trap(BLOB_STUN_TIME * 16, BLOB_DAMAGE)
-                    if debugger:
-                        debugger.add_log("Player trapped by blob")
-                continue
+        etype = getattr(e, "enemy_type", "")
 
-            # Bomber explosion
-            if etype == "BOMBER":
-                if hasattr(e, "explode"):
-                    e.explode()
-                if player.invulnerable_timer == 0:
-                    player.health -= BOMBER_DAMAGE
-                    player.lose_powerup_level()
+        # Blob trap
+        if etype == "BLOB":
+            if player.invulnerable_timer == 0:
+                player.apply_trap(BLOB_STUN_TIME * 16, BLOB_DAMAGE)
+                if debugger:
+                    debugger.add_log("Player trapped by blob")
+            continue
 
-                    player.invulnerable_timer = 60
-                    if debugger:
-                        debugger.add_log("Player hit by bomber explosion")
-                continue
+        # Bomber explosion
+        if etype == "BOMBER":
+            if hasattr(e, "explode"):
+                e.explode()
+            if player.invulnerable_timer == 0:
+                player.health -= BOMBER_DAMAGE
+                player.lose_powerup_level()
+                player.invulnerable_timer = 60
 
-            # Boss contact damage
-            if etype == "BOSS":
-                if player.invulnerable_timer == 0:
-                    player.health -= BOSS_DAMAGE
-                    player.lose_powerup_level()
+                if debugger:
+                    debugger.add_log("Player hit by bomber explosion")
+            continue
 
-                    player.invulnerable_timer = 60
-                    if debugger:
-                        debugger.add_log("Player hit by boss")
-                continue
+        # Boss contact damage
+        if etype == "BOSS":
+            if player.invulnerable_timer == 0:
+                player.health -= BOSS_DAMAGE
+                player.lose_powerup_level()
+                player.invulnerable_timer = 60
 
-            # Normal enemy collision
+                if debugger:
+                    debugger.add_log("Player hit by boss")
+            continue
+
+        # Normal enemy collision
+        if player.invulnerable_timer == 0:
+            player.health -= HAZARD_DAMAGE
+            player.lose_powerup_level()
+            player.invulnerable_timer = 60
+
+            if debugger:
+                debugger.add_log("Player hit by enemy")
+
+    # ---------------------------------------------------------
+    #   Asteroids → player
+    # ---------------------------------------------------------
+    for a in asteroids.copy():
+        ar = getattr(a, "hitbox_radius", 20)
+
+        if not circle_hit(ppos, pr, a.pos, ar):
+            continue
+
+        if current_time - player.last_asteroid_hit > player.asteroid_hit_cooldown:
+            player.last_asteroid_hit = current_time
+
             if player.invulnerable_timer == 0:
                 player.health -= HAZARD_DAMAGE
                 player.lose_powerup_level()
-
                 player.invulnerable_timer = 60
+
                 if debugger:
-                    debugger.add_log("Player hit by enemy")
-
-    # --- Asteroids hitting player ---
-    for a in asteroids.copy():
-        if player.rect.colliderect(a.rect):
-
-            if current_time - player.last_asteroid_hit > player.asteroid_hit_cooldown:
-                player.last_asteroid_hit = current_time
-
-                if player.invulnerable_timer == 0:
-                    player.health -= HAZARD_DAMAGE
-                    player.lose_powerup_level()
-
-                    player.invulnerable_timer = 60
-                    if debugger:
-                        debugger.add_log("Player hit by asteroid")
+                    debugger.add_log("Player hit by asteroid")
 
     return player.health <= 0

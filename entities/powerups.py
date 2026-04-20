@@ -21,6 +21,10 @@ class Powerup(pygame.sprite.Sprite):
         self.pos = pygame.Vector2(x, y)
         self.vel = pygame.Vector2(random.uniform(-1, 1), random.uniform(-1, 1))
 
+        # ⭐ Circular hitbox radius (shmup‑style)
+        # The sprite is 20×20, so a radius of ~8–10 feels perfect.
+        self.hitbox_radius = 8
+
     def update(self, **kwargs):
         # Screen size is passed in by your main loop
         if "WIDTH" in kwargs:

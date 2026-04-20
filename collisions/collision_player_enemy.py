@@ -1,121 +1,124 @@
 import pygame
+from settings import (
+    HAZARD_DAMAGE, BLOB_DAMAGE, BOMBER_DAMAGE, BOSS_DAMAGE,
+    BLOB_STUN_TIME
+)
 
-def handle_player_enemy_collisions(
-    player, groups, state, sfx
-):
+# ---------------------------------------------------------
+#   Circular hitbox helper
+# ---------------------------------------------------------
+def circle_hit(pos1, r1, pos2, r2):
+    return (pos1 - pos2).length_squared() <= (r1 + r2) ** 2
+
+
+def handle_enemy_player_collisions(player, groups, state, sfx):
     """
     Handles:
-    - bullets hitting enemies
-    - shrapnel grenades hitting enemies
-    - bomber fragments hitting enemies
-    - remove_on_collision logic
+    - enemies colliding with player
+    - blob traps
+    - bomber explosions
+    - boss contact damage
+    - enemy bullets hitting player
+    - asteroid collisions
     """
 
     enemies = groups["enemies"]
-    bullets = groups["bullets"]
-    shrapnel_grenades = groups["shrapnel_grenades"]
-    all_sprites = groups["all_sprites"]
+    enemy_bullets = groups["boss_bullets"]
+    asteroids = groups["asteroids"]
     debugger = state.get("debugger", None)
-    score = state["score"]
+    current_time = pygame.time.get_ticks()
 
-    spawn_shrapnel_explosion = state["spawn_shrapnel_explosion"]
+    ppos = player.hit_pos
+    pr = player.hitbox_radius
 
+    # ---------------------------------------------------------
+    #   Enemy bullets → Player
+    # ---------------------------------------------------------
+    for b in enemy_bullets.copy():
+        br = getattr(b, "hitbox_radius", 4)
+
+        if circle_hit(ppos, pr, b.pos, br):
+            enemy_bullets.remove(b)
+            b.kill()
+
+            if player.invulnerable_timer == 0:
+                player.health -= HAZARD_DAMAGE
+                player.lose_powerup_level()
+                player.invulnerable_timer = 60
+
+                if debugger:
+                    debugger.add_log("Player hit by enemy bullet")
+
+    # ---------------------------------------------------------
+    #   Enemies → Player
+    # ---------------------------------------------------------
     for e in enemies.copy():
-        enemy_removed = False
+        er = getattr(e, "hitbox_radius", 12)
 
-        # -------------------------------------------------------
-        #   NORMAL BULLETS
-        # -------------------------------------------------------
-        for b in bullets.copy():
-            if e.rect.colliderect(b.rect):
-                bullets.remove(b)
-                b.kill()
-
-                # ⭐ FIX: Blobs should NOT trap the player when shot
-                if hasattr(e, "collision_effect") and getattr(e, "type", "") != "BLOB":
-                    e.collision_effect(player)
-
-                # ⭐ NEW: spawn splatter before removing enemy
-                if getattr(e, "remove_on_collision", True):
-                    if hasattr(e, "spawn_splatter"):
-                        e.spawn_splatter(groups)
-
-                    enemies.remove(e)
-                    e.kill()
-
-                score += 10
-                if debugger:
-                    debugger.add_log("Enemy destroyed by bullet")
-                enemy_removed = True
-                break
-        if enemy_removed:
+        if not circle_hit(ppos, pr, e.pos, er):
             continue
 
-        # -------------------------------------------------------
-        #   SHRAPNEL GRENADES
-        # -------------------------------------------------------
-        for s in shrapnel_grenades.copy():
-            if s.exploded:
-                spawn_shrapnel_explosion(s.rect.center, all_sprites, bullets)
-                shrapnel_grenades.remove(s)
-                s.kill()
+        etype = getattr(e, "enemy_type", "")
+
+        # Blob trap
+        if etype == "BLOB":
+            if player.invulnerable_timer == 0:
+                player.apply_trap(BLOB_STUN_TIME * 16, BLOB_DAMAGE)
                 if debugger:
-                    debugger.add_log("Shrapnel grenade exploded")
-                continue
-
-            if e.rect.colliderect(s.rect):
-                spawn_shrapnel_explosion(s.rect.center, all_sprites, bullets)
-                shrapnel_grenades.remove(s)
-                s.kill()
-
-                # ⭐ FIX: Blobs should NOT trap the player when shot
-                if hasattr(e, "collision_effect") and getattr(e, "type", "") != "BLOB":
-                    e.collision_effect(player)
-
-                # ⭐ NEW: spawn splatter before removing enemy
-                if getattr(e, "remove_on_collision", True):
-                    if hasattr(e, "spawn_splatter"):
-                        e.spawn_splatter(groups)
-
-                    enemies.remove(e)
-                    e.kill()
-
-                score += 10
-                if debugger:
-                    debugger.add_log("Enemy destroyed by shrapnel")
-                enemy_removed = True
-                break
-        if enemy_removed:
+                    debugger.add_log("Player trapped by blob")
             continue
 
-        # -------------------------------------------------------
-        #   BOMBER FRAGMENTS
-        # -------------------------------------------------------
-        for b in bullets.copy():
-            if getattr(b, "is_bomber_fragment", False):
-                if e.rect.colliderect(b.rect):
-                    bullets.remove(b)
-                    b.kill()
+        # Bomber explosion
+        if etype == "BOMBER":
+            if hasattr(e, "explode"):
+                e.explode()
+            if player.invulnerable_timer == 0:
+                player.health -= BOMBER_DAMAGE
+                player.lose_powerup_level()
+                player.invulnerable_timer = 60
 
-                    # ⭐ FIX: Blobs should NOT trap the player when shot
-                    if hasattr(e, "collision_effect") and getattr(e, "type", "") != "BLOB":
-                        e.collision_effect(player)
-
-                    # ⭐ NEW: spawn splatter before removing enemy
-                    if getattr(e, "remove_on_collision", True):
-                        if hasattr(e, "spawn_splatter"):
-                            e.spawn_splatter(groups)
-
-                        enemies.remove(e)
-                        e.kill()
-
-                    score += 10
-                    if debugger:
-                        debugger.add_log("Enemy destroyed by fragment")
-                    enemy_removed = True
-                    break
-        if enemy_removed:
+                if debugger:
+                    debugger.add_log("Player hit by bomber explosion")
             continue
 
-    state["score"] = score
-    return score
+        # Boss contact
+        if etype == "BOSS":
+            if player.invulnerable_timer == 0:
+                player.health -= BOSS_DAMAGE
+                player.lose_powerup_level()
+                player.invulnerable_timer = 60
+
+                if debugger:
+                    debugger.add_log("Player hit by boss")
+            continue
+
+        # Normal enemy collision
+        if player.invulnerable_timer == 0:
+            player.health -= HAZARD_DAMAGE
+            player.lose_powerup_level()
+            player.invulnerable_timer = 60
+
+            if debugger:
+                debugger.add_log("Player hit by enemy")
+
+    # ---------------------------------------------------------
+    #   Asteroids → Player
+    # ---------------------------------------------------------
+    for a in asteroids.copy():
+        ar = getattr(a, "hitbox_radius", 20)
+
+        if not circle_hit(ppos, pr, a.pos, ar):
+            continue
+
+        if current_time - player.last_asteroid_hit > player.asteroid_hit_cooldown:
+            player.last_asteroid_hit = current_time
+
+            if player.invulnerable_timer == 0:
+                player.health -= HAZARD_DAMAGE
+                player.lose_powerup_level()
+                player.invulnerable_timer = 60
+
+                if debugger:
+                    debugger.add_log("Player hit by asteroid")
+
+    return player.health <= 0

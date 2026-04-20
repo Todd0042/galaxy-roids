@@ -80,7 +80,7 @@ def spawn_random_powerups(state, groups):
 BOSS_LIST = [
     Boss1,  # levels 1–2
     Boss2,  # levels 3–4
-    # Boss3,  # levels 5–6
+    Boss3,  # levels 5–6
     # Boss4,  # levels 7–8
     # Boss5,  # levels 9–10
 ]

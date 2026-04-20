@@ -33,11 +33,14 @@ class BaseBoss(pygame.sprite.Sprite):
 
         self.hit_flash = 0
 
-        # Must be set by subclasses:
+        # Subclasses must set these:
         self.image = None
         self.rect = None
         self.max_health = 1
         self.health = 1
+
+        # ⭐ Circular hitbox (computed once image is known)
+        self.hitbox_radius = None
 
     # -------------------------
     #   SHARED UPDATE LOGIC
@@ -47,6 +50,11 @@ class BaseBoss(pygame.sprite.Sprite):
         self.update_movement()
         self.update_attacks()
         self.update_timers()
+
+        # ⭐ Auto‑compute hitbox radius once image is set
+        if self.image and self.hitbox_radius is None:
+            w, h = self.image.get_size()
+            self.hitbox_radius = max(w, h) * 0.25
 
         if self.rect:
             self.rect.center = self.pos
