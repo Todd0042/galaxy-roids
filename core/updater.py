@@ -35,7 +35,8 @@ def update_all_sprites(player, joysticks, groups, debugger, state):
             debugger.add_log(f"Updated: {sprite.__class__.__name__}")
 
         # Trails update separately
-        trail_group.update(state=state)
+        trail_group.update()
+
 
         # ==========================================================
         # ⭐ MUSIC: Smooth fade to boss theme before boss spawns
@@ -52,13 +53,18 @@ def update_all_sprites(player, joysticks, groups, debugger, state):
             if not state.get("boss_music_started", False):
                 if elapsed >= boss_time - 5000:
 
-                    # Fade to boss theme over 2 seconds
+                    # ⭐ Correct call:
+                    # - No "assets/music/" prefix (loader adds it)
+                    # - No fade_ms here (play_music handles fade)
                     sfx["play_music"](
-                        "assets/music/boss_theme.ogg",
+                        "boss_theme.ogg",
+                        volume=0.6,
+                        loop=-1,
                         fade_ms=2000
                     )
 
                     state["boss_music_started"] = True
+
 
     except Exception as e:
         debugger.capture_exception(e, debugger.last_sprite)

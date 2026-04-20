@@ -26,9 +26,13 @@ class Boss2(BaseBoss):
         # -----------------------------------------
         # STATS & VISUALS
         # -----------------------------------------
-        self.max_health = (BOSS_HEALTH_BASE * 1.4) * (1.25 ** (level - 1))
+        raw_hp = (BOSS_HEALTH_BASE * 1.4) * (1.25 ** (level - 1))
+
+        self.max_health = self.apply_health_cap(raw_hp)
         self.health = self.max_health
+
         self.contact_damage = 10
+
 
         self.image = pygame.Surface((180, 100), pygame.SRCALPHA)
         pygame.draw.rect(self.image, (150, 0, 255), (0, 0, 180, 60), border_radius=20)
@@ -58,18 +62,15 @@ class Boss2(BaseBoss):
 
         # Fire gravity bomb
         dist = random.randint(200, 600)
-        angle = random.randint(60, 120)
+        angle = random.randint(135, 225)
         bomb = GravityBomb(self.rect.center, angle, self.screen_w, self.screen_h, dist)
 
         # ⭐ AUDIO: bomb launch
         self.play_sound(self.sound_bomb_launch)
 
         # Correct group insertion
-        sprite_groups = self.groups()
-        for g in sprite_groups:
-            if hasattr(g, "name") and g.name == "all_sprites":
-                g.add(bomb)
-            if hasattr(g, "name") and g.name == "gravity_bombs":
-                g.add(bomb)
+        groups["all_sprites"].add(bomb)
+        groups["gravity_bombs"].add(bomb)
 
-        self.bomb_cooldown = 180
+
+        self.bomb_cooldown = 60

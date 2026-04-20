@@ -1,3 +1,24 @@
+import pygame
+import math
+import random
+
+# Player constants
+from settings import (
+    PLAYER_ROT_SPEED,
+    PLAYER_THRUST,
+    PLAYER_FRICTION,
+    PLAYER_BRAKE_FRICTION,
+    PLAYER_REVERSE_THRUST,
+    PLAYER_MAX_HEALTH,
+)
+
+# Colors
+from settings import GOLDEN_YELLOW, CYAN
+
+# Trail effect
+from entities.trail import TrailSegment
+
+
 class Player(pygame.sprite.Sprite):
     def __init__(self, screen_w, screen_h):
         super().__init__()
@@ -18,7 +39,7 @@ class Player(pygame.sprite.Sprite):
         self.base_image = pygame.image.load("assets/player/player_ship.png").convert_alpha()
         self.engine_glow = pygame.image.load("assets/player/engine_glow.png").convert_alpha()
 
-        scale_factor = 0.10
+        scale_factor = 0.25
         bw = int(self.base_image.get_width() * scale_factor)
         bh = int(self.base_image.get_height() * scale_factor)
         self.base_image = pygame.transform.smoothscale(self.base_image, (bw, bh))
@@ -54,7 +75,7 @@ class Player(pygame.sprite.Sprite):
         self.stun_timer = 0
 
         # --- Hitbox ---
-        self.hitbox_radius = 6.5
+        self.hitbox_radius = 4.5
         self.hitbox_center = pygame.Vector2(self.pos)
 
         # ⭐ AUDIO: dedicated engine loop channel
@@ -279,3 +300,15 @@ class Player(pygame.sprite.Sprite):
             ch = pygame.mixer.find_channel()
             if ch:
                 ch.play(self.sfx["player_hit"])
+
+
+    # -------------------------------------------------
+    #   Generic Damage Entry Point (used by enemies)
+    # -------------------------------------------------
+    def apply_damage(self, amount):
+        """
+        Unified damage handler for all non-explosion enemy hits.
+        Stingers, regular enemies, etc. call this.
+        """
+        self.take_damage(amount)
+

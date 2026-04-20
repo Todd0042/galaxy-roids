@@ -44,8 +44,11 @@ class Boss3(BaseBoss):
         # -----------------------------------------
         #   CORE STATS
         # -----------------------------------------
-        self.max_health = BOSS_HEALTH_BASE * (1.35 ** (level - 1))
+        raw_hp = BOSS_HEALTH_BASE * (1.35 ** (level - 1))
+
+        self.max_health = self.apply_health_cap(raw_hp)
         self.health = self.max_health
+
         self.contact_damage = 10
         self.tail_damage = 5 + (self.level * 5)
 
@@ -247,6 +250,32 @@ class Boss3(BaseBoss):
 
         self.weakspot_rect.x = self.pos.x - self.rect.width // 2 + self.weakspot_offset.x
         self.weakspot_rect.y = self.pos.y - self.rect.height // 2 + self.weakspot_offset.y
+
+    # ---------------------------------------------------------
+    #   DRAW — body + tail
+    # ---------------------------------------------------------
+    def draw(self, surface):
+        # Draw main body
+        surface.blit(self.image, self.rect)
+
+        # Draw tail segments
+        tail_base = pygame.Vector2(
+            self.pos.x + self.tail_base_offset.x,
+            self.pos.y + self.tail_base_offset.y
+        )
+
+        x, y = tail_base.x, tail_base.y
+
+        for seg in self.tail_segments:
+            rad = math.radians(seg["angle"])
+            nx = x + math.cos(rad) * seg["length"]
+            ny = y + math.sin(rad) * seg["length"]
+
+            pygame.draw.line(surface, YELLOW, (x, y), (nx, ny), 6)
+            x, y = nx, ny
+
+        # Tail tip
+        pygame.draw.circle(surface, YELLOW, (int(self.tail_tip.x), int(self.tail_tip.y)), 8)
 
     # ---------------------------------------------------------
     #   DAMAGE HANDLING — weak spot vs armor

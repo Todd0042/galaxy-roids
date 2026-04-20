@@ -39,15 +39,26 @@ def handle_autofire(player, groups, sfx, state):
     else:
         state["single_shot_fired"] = False
 
-    # --------------------------
-    # AUTO-FIRE PEW (NO BUTTON)
-    # --------------------------
-
+    # -------------------------------------------------------
+    #   AUTO-FIRE PEW (FIRST SHOT INSTANT)
+    # -------------------------------------------------------
     now = pygame.time.get_ticks()
-    MIN_SPACING = 160   # minimum ms between starting a new pew
+    MIN_SPACING = 160  # keep your existing delay
 
-    if now - state["last_pew_time"] > MIN_SPACING:
-        # ⭐ AUDIO: rapid-fire pew
+    last = state.get("last_pew_time")
+
+    # First pew is instant
+    if last is None:
+        can_fire = True
+
+    # Subsequent pews follow spacing
+    elif now - last >= MIN_SPACING:
+        can_fire = True
+
+    else:
+        can_fire = False
+
+    if can_fire:
         ch = pygame.mixer.find_channel()
         if ch and sfx.get("weapon_pew"):
             ch.play(sfx["weapon_pew"])

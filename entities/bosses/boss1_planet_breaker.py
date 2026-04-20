@@ -29,9 +29,13 @@ class Boss1(BaseBoss):
         # -----------------------------------------
         # STATS & VISUALS
         # -----------------------------------------
-        self.max_health = BOSS_HEALTH_BASE * (1.25 ** (level - 1))
+        raw_hp = BOSS_HEALTH_BASE * (1.25 ** (level - 1))
+
+        self.max_health = self.apply_health_cap(raw_hp)
         self.health = self.max_health
+
         self.contact_damage = 10
+
 
         self.image = pygame.Surface((150, 80), pygame.SRCALPHA)
         pygame.draw.rect(self.image, RED, (0, 0, 150, 50), border_radius=15)

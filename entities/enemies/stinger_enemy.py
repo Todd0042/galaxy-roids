@@ -5,8 +5,7 @@ from .base_enemy import BaseEnemy
 
 # Stinger constants
 STINGER_DASH_SPEED = 8.5
-STINGER_CIRCLE_SPEED = 3.0
-STINGER_CIRCLE_RADIUS = 90
+STINGER_ROAM_SPEED = 2.2
 STINGER_RECOVERY_TIME = 350   # ms after overshoot
 STINGER_DAMAGE = 20
 
@@ -17,14 +16,20 @@ class StingerEnemy(BaseEnemy):
         self.type = "STINGER"
         self.contact_damage = 5
 
+        # ⭐ NEW: freeze movement for 2 seconds after spawning
+        self.spawn_delay = 2000  # ms
+        self.last_update_time = pygame.time.get_ticks()
 
         # Stinger states
-        self.state = "CIRCLING"  # CIRCLING → DASHING → RECOVERY → CIRCLING
-        self.circle_angle = random.uniform(0, math.tau)
+        self.state = "ROAMING"  # ROAMING → DASHING → RECOVERY → ROAMING
         self.recovery_start = 0
 
-        # Target point for dash
+        # Dash target
         self.dash_target = pygame.Vector2(pos)
+
+        # ⭐ Random roaming direction
+        angle = random.uniform(0, math.tau)
+        self.roam_dir = pygame.Vector2(math.cos(angle), math.sin(angle))
 
         # Faster wing animation (optional)
         self.wing_speed = 60
@@ -52,35 +57,38 @@ class StingerEnemy(BaseEnemy):
         return surf
 
     # -----------------------------------------------------------
-    #   MOVEMENT LOGIC — dash loop behavior
+    #   MOVEMENT LOGIC — roam → dash → recover
     # -----------------------------------------------------------
     def movement_update(self, player_pos):
         now = pygame.time.get_ticks()
+        dt = now - self.last_update_time
+        self.last_update_time = now
+
+        # ⭐ NEW: freeze all movement for 2 seconds after spawning
+        if self.spawn_delay > 0:
+            self.spawn_delay -= dt
+            return
 
         # -------------------------------
-        #   CIRCLING (prep for next dash)
+        #   ROAMING (random wandering)
         # -------------------------------
-        if self.state == "CIRCLING":
-            if player_pos is None:
-                return
+        if self.state == "ROAMING":
+            # Move in current direction
+            self.pos += self.roam_dir * STINGER_ROAM_SPEED
 
-            # Orbit around player
-            self.circle_angle += 0.04
-            offset = pygame.Vector2(
-                math.cos(self.circle_angle),
-                math.sin(self.circle_angle)
-            ) * STINGER_CIRCLE_RADIUS
-
-            self.pos = player_pos + offset
-
-            # ⭐ WRAP during circling
+            # Wrap
             self.pos.x %= self.width
             self.pos.y %= self.height
 
-            # Randomly decide to dash
+            # Occasionally change direction
             if random.random() < 0.02:
+                angle = random.uniform(0, math.tau)
+                self.roam_dir = pygame.Vector2(math.cos(angle), math.sin(angle))
+
+            # Occasionally dash at player
+            if player_pos is not None and random.random() < 0.015:
                 self.state = "DASHING"
-                self.dash_target = pygame.Vector2(player_pos)  # last known position
+                self.dash_target = pygame.Vector2(player_pos)
             return
 
         # -------------------------------
@@ -93,7 +101,7 @@ class StingerEnemy(BaseEnemy):
 
             self.pos += direction * STINGER_DASH_SPEED
 
-            # ⭐ WRAP during dash
+            # Wrap
             self.pos.x %= self.width
             self.pos.y %= self.height
 
@@ -104,17 +112,12 @@ class StingerEnemy(BaseEnemy):
             return
 
         # -------------------------------
-        #   RECOVERY (curve back around)
+        #   RECOVERY (pause after dash)
         # -------------------------------
         if self.state == "RECOVERY":
-            # ⭐ WRAP during recovery
-            self.pos.x %= self.width
-            self.pos.y %= self.height
-
             if now - self.recovery_start > STINGER_RECOVERY_TIME:
-                self.state = "CIRCLING"
+                self.state = "ROAMING"
             return
-
 
     # -----------------------------------------------------------
     #   ATTACK LOGIC — stingers don't shoot
@@ -126,7 +129,4 @@ class StingerEnemy(BaseEnemy):
     #   COLLISION EFFECT — high dash damage
     # -----------------------------------------------------------
     def collision_effect(self, player):
-        """
-        Called when the stinger hits the player during a dash.
-        """
         player.apply_damage(STINGER_DAMAGE)

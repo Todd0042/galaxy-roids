@@ -7,62 +7,46 @@ def load_sfx(path):
     try:
         return pygame.mixer.Sound(path)
     except (pygame.error, FileNotFoundError):
+        print(f"[AUDIO] Missing or invalid SFX: {path}")
         return None
 
 
-def load_sounds():
+def load_sounds(sound_map: dict):
     """
-    Returns a dict of all sound effects used in the game.
-    Organized by category for clarity and future expansion.
+    Loads sound effects from a {name: path} dictionary.
+    This matches the API expected by game_init.py.
     """
-    base = "assets/sfx"
+    loaded = {}
 
-    return {
+    for key, path in sound_map.items():
+        if not os.path.exists(path):
+            print(f"[AUDIO] Missing file: {path}")
+            continue
 
-        # --------------------------
-        # PLAYER WEAPONS
-        # --------------------------
-        "weapon_pew":          load_sfx(os.path.join(base, "weapon_pew.wav")),
-        "weapon_laser":        load_sfx(os.path.join(base, "weapon_laser.wav")),
-        "weapon_missile":      load_sfx(os.path.join(base, "weapon_missile.wav")),
-        "weapon_beam_charge":  load_sfx(os.path.join(base, "weapon_beam_charge.wav")),
-        "weapon_beam_fire":    load_sfx(os.path.join(base, "weapon_beam_fire.wav")),
+        try:
+            loaded[key] = pygame.mixer.Sound(path)
+        except Exception as e:
+            print(f"[AUDIO] Failed to load {path}: {e}")
 
-        # --------------------------
-        # BUG ENEMIES
-        # --------------------------
-        "bug_small_death":     load_sfx(os.path.join(base, "bug_small_death.wav")),
-        "bug_big_death":       load_sfx(os.path.join(base, "bug_big_death.wav")),
-        "bug_spit":            load_sfx(os.path.join(base, "bug_spit.wav")),
-        "bug_hit":             load_sfx(os.path.join(base, "bug_hit.wav")),
-
-        # --------------------------
-        # BOSSES
-        # --------------------------
-        "boss_roar":           load_sfx(os.path.join(base, "boss_roar.wav")),
-        "boss_laser":          load_sfx(os.path.join(base, "boss_laser.wav")),
-        "boss_missile":        load_sfx(os.path.join(base, "boss_missile.wav")),
-        "boss_phase":          load_sfx(os.path.join(base, "boss_phase.wav")),
-        "boss_death":          load_sfx(os.path.join(base, "boss_death.wav")),
-
-        # --------------------------
-        # GENERIC / SHARED
-        # --------------------------
-        "explosion_small":     load_sfx(os.path.join(base, "explosion_small.wav")),
-        "explosion_big":       load_sfx(os.path.join(base, "explosion_big.wav")),
-        "ui_click":            load_sfx(os.path.join(base, "ui_click.wav")),
-        "ui_error":            load_sfx(os.path.join(base, "ui_error.wav")),
-    }
+    return loaded
 
 
-def play_music(filename):
+def play_music(filename, volume=0.6, loop=-1, fade_ms=0):
     """
     Plays looping background music from assets/music/.
     Safe if file doesn't exist.
+    Supports optional fade-in.
     """
+    path = os.path.join("assets/music", filename)
+
+    if not os.path.exists(path):
+        print(f"[AUDIO] Missing music file: {path}")
+        return
+
     try:
-        path = os.path.join("assets/music", filename)
         pygame.mixer.music.load(path)
-        pygame.mixer.music.play(-1)
-    except (pygame.error, FileNotFoundError):
-        pass
+        pygame.mixer.music.set_volume(volume)
+        pygame.mixer.music.play(loop, fade_ms=fade_ms)
+    except (pygame.error, FileNotFoundError) as e:
+        print(f"[AUDIO] Failed to play music {path}: {e}")
+

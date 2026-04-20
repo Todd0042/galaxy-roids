@@ -116,7 +116,7 @@ def main():
         # SPAWNING
         # --------------------------
         spawn_random_powerups(state, groups)
-        spawn_boss_if_ready(state, groups, play_music=sfx["play_music"])
+        spawn_boss_if_ready(state, groups)   # ⭐ patched for new audio system
         spawn_periodic_enemy_waves(state, groups)
         spawn_periodic_asteroids(state, groups)
 
@@ -124,7 +124,6 @@ def main():
         # UPDATE SPRITES
         # --------------------------
         if not update_all_sprites(player, joysticks, groups, debugger, state):
-
             continue
 
         # --------------------------
@@ -148,7 +147,6 @@ def main():
         # --------------------------
         # Draw everything to the dynamic render surface
         render_frame(render_surface, player, groups, state, debugger, clock)
-
 
         # Blit the render surface to the actual window
         scaled = pygame.transform.smoothscale(render_surface, (WIDTH, HEIGHT))

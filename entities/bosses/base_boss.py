@@ -1,5 +1,7 @@
 import pygame
 import math
+from settings import MAX_BOSS_HEALTH
+
 
 class BaseBoss(pygame.sprite.Sprite):
     """
@@ -67,6 +69,13 @@ class BaseBoss(pygame.sprite.Sprite):
             ch = pygame.mixer.find_channel()
             if ch:
                 ch.play(snd)
+                
+    # --------------------------------------------------------
+    # Health cap helper
+    # --------------------------------------------------------
+    def apply_health_cap(self, hp):
+        """Clamp boss HP to the global MAX_BOSS_HEALTH."""
+        return min(hp, MAX_BOSS_HEALTH)
 
     # -------------------------
     #   SHARED UPDATE LOGIC
