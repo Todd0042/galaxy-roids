@@ -10,7 +10,7 @@ from entities.powerups import Powerup
 from entities.asteroid import Asteroid
 
 # NEW: Modular boss imports
-from entities.bosses import Boss1, Boss2, Boss3 #, Boss4, Boss5
+from entities.bosses import Boss1, Boss2, Boss3  # , Boss4, Boss5
 
 # Correct enemy imports
 from entities.enemies.regular_enemy import RegularEnemy
@@ -20,6 +20,7 @@ from entities.enemies.stinger_enemy import StingerEnemy
 
 # Needed for shrapnel explosion
 from entities.projectiles import Bullet
+
 
 # ==========================
 #   SHRAPNEL EXPLOSION
@@ -65,52 +66,39 @@ def spawn_random_powerups(state, groups):
         spawn_x = random.randint(0, WIDTH)
         spawn_y = random.randint(0, HEIGHT)
 
-        p = Powerup(spawn_x, spawn_y)
+        p = Powerup(spawn_x, spawn_y, sfx=state["sfx"])  # ⭐ pass sfx
         groups["powerups"].add(p)
         groups["all_sprites"].add(p)
-
 
 
 # ==========================
 #   BOSS ROTATION SYSTEM
 # ==========================
 
-# Bosses assigned in 2‑level pairs:
-# 1–2 → Boss1
-# 3–4 → Boss2
-# 5–6 → Boss3 (if exists, else fallback)
-# 7–8 → Boss4 (if exists, else fallback)
-# etc.
 BOSS_LIST = [
     Boss1,  # levels 1–2
     Boss2,  # levels 3–4
     Boss3,  # levels 5–6
-    # Boss4,  # levels 7–8
-    # Boss5,  # levels 9–10
+    # Boss4,
+    # Boss5,
 ]
 
 
 def get_boss_for_level(level):
     pair_index = (level - 1) // 2
 
-    # If we have a boss for this pair, use it
     if pair_index < len(BOSS_LIST):
         return BOSS_LIST[pair_index]
 
-    # Fallback logic:
-    # Even pair_index → Boss1
-    # Odd pair_index  → Boss2
-    if pair_index % 2 == 0:
-        return Boss1
-    else:
-        return Boss2
+    # fallback
+    return Boss1 if pair_index % 2 == 0 else Boss2
 
 
 # ==========================
 #        BOSS SPAWN
 # ==========================
 
-def spawn_boss_if_ready(state, groups, play_music):
+def spawn_boss_if_ready(state, groups):
     if not state["game_active"]:
         return
 
@@ -118,7 +106,11 @@ def spawn_boss_if_ready(state, groups, play_music):
         return
 
     ticks = pygame.time.get_ticks()
-    if ticks - state["level_start_time"] < BOSS_SPAWN_TIME:
+
+    # ⭐ dynamic boss spawn time
+    boss_time = state.get("boss_spawn_time", BOSS_SPAWN_TIME)
+
+    if ticks - state["level_start_time"] < boss_time:
         return
 
     WIDTH = state["WIDTH"]
@@ -126,7 +118,6 @@ def spawn_boss_if_ready(state, groups, play_music):
     level = state["level"]
     speed = state["current_boss_speed"]
 
-    # NEW: Modular boss selection
     boss_class = get_boss_for_level(level)
     boss = boss_class(WIDTH, HEIGHT, level, speed=speed)
 
@@ -135,8 +126,18 @@ def spawn_boss_if_ready(state, groups, play_music):
 
     state["boss_spawned"] = True
 
-    # Play boss music
-    play_music(f"boss{((level - 1) % 5) + 1}.midi")
+    # ==========================
+    # ⭐ MUSIC: Guarantee boss theme is active
+    # ==========================
+    sfx = state.get("sfx")
+    if sfx and sfx.get("play_music"):
+        try:
+            sfx["play_music"](
+                "assets/music/boss_theme.ogg",
+                fade_ms=800
+            )
+        except Exception:
+            pass
 
 
 # ==========================

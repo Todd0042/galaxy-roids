@@ -18,11 +18,31 @@ def handle_boss_defeat(player, groups, state, sfx, screen, font):
     """
 
     # ==========================
+    # ⭐ AUDIO: boss defeated stinger
+    # ==========================
+    ch = pygame.mixer.find_channel()
+    if ch and sfx.get("boss_defeated"):
+        ch.play(sfx["boss_defeated"])
+
+    # Optional: tiny shake for dramatic effect
+    state["screenshake"] = max(state.get("screenshake", 0), 6)
+
+    # ==========================
     # 1. Show victory popup
     # ==========================
+
+    # ⭐ AUDIO: popup open
+    ch = pygame.mixer.find_channel()
+    if ch and sfx.get("ui_popup_open"):
+        ch.play(sfx["ui_popup_open"])
+
     result = show_victory_popup(state["score"], state["level"])
 
     if result == "exit":
+        # ⭐ AUDIO: exit confirm
+        ch = pygame.mixer.find_channel()
+        if ch and sfx.get("ui_confirm"):
+            ch.play(sfx["ui_confirm"])
         return "exit"
 
     # ==========================
@@ -32,10 +52,25 @@ def handle_boss_defeat(player, groups, state, sfx, screen, font):
         state["current_enemy_speed"] += 0.4
         state["current_boss_speed"] += 0.4
 
+        # ⭐ AUDIO: difficulty chosen
+        ch = pygame.mixer.find_channel()
+        if ch and sfx.get("ui_select_harder"):
+            ch.play(sfx["ui_select_harder"])
+    else:
+        # ⭐ AUDIO: normal difficulty confirm
+        ch = pygame.mixer.find_channel()
+        if ch and sfx.get("ui_confirm"):
+            ch.play(sfx["ui_confirm"])
+
     # ==========================
     # 3. Level increment
     # ==========================
     state["level"] += 1
+
+    # ⭐ AUDIO: level complete jingle
+    ch = pygame.mixer.find_channel()
+    if ch and sfx.get("level_complete"):
+        ch.play(sfx["level_complete"])
 
     # ==========================
     # 4. Reset boss + spawn timers
@@ -43,6 +78,9 @@ def handle_boss_defeat(player, groups, state, sfx, screen, font):
     state["boss_spawned"] = False
     state["last_periodic_spawn"] = 0
     state["level_start_time"] = pygame.time.get_ticks()
+
+    # ⭐ MUSIC: reset boss fade flag for next level
+    state["boss_music_started"] = False
 
     # ==========================
     # 5. Clear boss bullets
@@ -53,6 +91,12 @@ def handle_boss_defeat(player, groups, state, sfx, screen, font):
     # ==========================
     # 5.5 Reduce player powerups between levels
     # ==========================
+
+    # ⭐ AUDIO: power reset sound
+    ch = pygame.mixer.find_channel()
+    if ch and sfx.get("player_power_reset"):
+        ch.play(sfx["player_power_reset"])
+
     player.powerup_hits = min(player.powerup_hits, 1)
 
     player.weapon_mode = "NORMAL"
@@ -67,6 +111,13 @@ def handle_boss_defeat(player, groups, state, sfx, screen, font):
     # ==========================
     # 6. Start next level
     # ==========================
+
+    # ⭐ AUDIO: new level start SFX (not music)
+    ch = pygame.mixer.find_channel()
+    if ch and sfx.get("level_start"):
+        ch.play(sfx["level_start"])
+
+    # ⭐ MUSIC: actual level music is started inside start_level()
     start_level(
         state["level"],
         state["WIDTH"],
@@ -76,7 +127,8 @@ def handle_boss_defeat(player, groups, state, sfx, screen, font):
         groups["asteroids"],
         state["current_enemy_speed"],
         state["enemies_per_side"],
-        debugger=None
+        debugger=None,
+        state=state  # ⭐ pass state so level_manager can access sfx + flags
     )
 
     return "continue"

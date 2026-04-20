@@ -4,12 +4,15 @@ from settings import CYAN
 
 
 class Powerup(pygame.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, x, y, sfx=None):
         super().__init__()
 
         # Store screen size later via update kwargs
         self.screen_w = None
         self.screen_h = None
+
+        # ⭐ AUDIO: store sfx reference
+        self.sfx = sfx
 
         # Visual
         self.image = pygame.Surface((20, 20), pygame.SRCALPHA)
@@ -20,6 +23,12 @@ class Powerup(pygame.sprite.Sprite):
         # Position + velocity
         self.pos = pygame.Vector2(x, y)
         self.vel = pygame.Vector2(random.uniform(-1, 1), random.uniform(-1, 1))
+
+        # ⭐ AUDIO: spawn shimmer
+        if self.sfx and self.sfx.get("powerup_spawn"):
+            ch = pygame.mixer.find_channel()
+            if ch:
+                ch.play(self.sfx["powerup_spawn"])
 
     def update(self, **kwargs):
         # Screen size is passed in by your main loop
@@ -40,6 +49,12 @@ class Powerup(pygame.sprite.Sprite):
 
     # ⭐ STACKING POWERUPS
     def apply(self, player):
+        # ⭐ AUDIO: pickup sound
+        if self.sfx and self.sfx.get("powerup_pickup"):
+            ch = pygame.mixer.find_channel()
+            if ch:
+                ch.play(self.sfx["powerup_pickup"])
+
         player.powerup_hits += 1
 
         # Always use spread shot once ANY powerup is collected

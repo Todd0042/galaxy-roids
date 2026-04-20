@@ -40,9 +40,6 @@ class Bullet(pygame.sprite.Sprite):
 
         self.pos = pygame.Vector2(pos)
 
-        # IMPORTANT:
-        # 0° = UP, not right
-        # So we rotate from (0, -1) instead of (1, 0)
         forward = pygame.Vector2(0, -1).rotate(angle)
         self.vel = forward * BULLET_SPEED
 
@@ -82,7 +79,6 @@ class ShrapnelBullet(pygame.sprite.Sprite):
 
         self.pos = pygame.Vector2(pos)
 
-        # FIXED: 0° = UP
         forward = pygame.Vector2(0, -1).rotate(angle)
         self.vel = forward * 6
 
@@ -126,7 +122,6 @@ class GravityBomb(pygame.sprite.Sprite):
 
         self.pos = pygame.Vector2(pos)
 
-        # FIXED: 0° = UP
         forward = pygame.Vector2(0, -1).rotate(angle)
         self.vel = forward * 4
 
@@ -136,6 +131,7 @@ class GravityBomb(pygame.sprite.Sprite):
 
     def update(self, **kwargs):
         state = kwargs.get("state")
+        sfx = kwargs.get("sfx")  # ⭐ AUDIO
         if state:
             self.screen_w = state["WIDTH"]
             self.screen_h = state["HEIGHT"]
@@ -153,6 +149,12 @@ class GravityBomb(pygame.sprite.Sprite):
 
         if self.dist_traveled >= self.target_dist:
             self.exploded = True
+
+            # ⭐ AUDIO: gravity bomb explosion
+            if sfx and sfx.get("boss2_bomb_explode"):
+                ch = pygame.mixer.find_channel()
+                if ch:
+                    ch.play(sfx["boss2_bomb_explode"])
 
         if not (0 <= self.pos.x <= self.screen_w and 0 <= self.pos.y <= self.screen_h):
             self.kill()
@@ -275,8 +277,6 @@ def spawn_shrapnel_explosion(center, all_sprites=None, group=None):
 
     for i in range(12):
         angle = i * 30
-
-        # FIXED: 0° = UP
         direction = pygame.Vector2(0, -1).rotate(angle)
 
         frag = Bullet(center, 0, 9999, 9999,
@@ -296,7 +296,6 @@ def spawn_gravity_explosion(center, all_sprites=None, group=None):
 
     for i in range(20):
         angle = i * 18
-
         direction = pygame.Vector2(0, -1).rotate(angle)
 
         frag = Bullet(center, 0, 9999, 9999,
@@ -332,6 +331,7 @@ class VenomOrb(pygame.sprite.Sprite):
 
     def update(self, **kwargs):
         state = kwargs.get("state")
+        sfx = kwargs.get("sfx")  # ⭐ AUDIO
         if state:
             self.screen_w = state["WIDTH"]
             self.screen_h = state["HEIGHT"]
@@ -342,11 +342,24 @@ class VenomOrb(pygame.sprite.Sprite):
 
         ground = self.screen_h - 40
 
+        # ⭐ FIRST BOUNCE
         if not self.bounced and self.pos.y >= ground:
             self.vel.y *= VENOM_ORB_BOUNCE_FACTOR
             self.bounced = True
 
+            if sfx and sfx.get("boss3_venom_bounce"):
+                ch = pygame.mixer.find_channel()
+                if ch:
+                    ch.play(sfx["boss3_venom_bounce"])
+
+        # ⭐ BURST INTO HAZARD POOL
         if self.bounced and self.pos.y >= self.screen_h - 20:
+
+            if sfx and sfx.get("boss3_venom_burst"):
+                ch = pygame.mixer.find_channel()
+                if ch:
+                    ch.play(sfx["boss3_venom_burst"])
+
             return "BURST"
 
         return None

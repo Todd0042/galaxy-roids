@@ -40,6 +40,18 @@ def handle_player_enemy_collisions(
                     if hasattr(e, "spawn_splatter"):
                         e.spawn_splatter(groups)
 
+                    # ⭐ AUDIO: enemy death sound
+                    ch = pygame.mixer.find_channel()
+                    if ch:
+                        etype = getattr(e, "type", "")
+                        if etype == "SMALL_BUG":
+                            ch.play(sfx.get("bug_small_death"))
+                        elif etype == "BIG_BUG":
+                            ch.play(sfx.get("bug_big_death"))
+                        else:
+                            if sfx.get("explosion_small"):
+                                ch.play(sfx["explosion_small"])
+
                     enemies.remove(e)
                     e.kill()
 
@@ -77,6 +89,18 @@ def handle_player_enemy_collisions(
                     if hasattr(e, "spawn_splatter"):
                         e.spawn_splatter(groups)
 
+                    # ⭐ AUDIO: enemy death sound
+                    ch = pygame.mixer.find_channel()
+                    if ch:
+                        etype = getattr(e, "type", "")
+                        if etype == "SMALL_BUG":
+                            ch.play(sfx.get("bug_small_death"))
+                        elif etype == "BIG_BUG":
+                            ch.play(sfx.get("bug_big_death"))
+                        else:
+                            if sfx.get("explosion_small"):
+                                ch.play(sfx["explosion_small"])
+
                     enemies.remove(e)
                     e.kill()
 
@@ -105,6 +129,18 @@ def handle_player_enemy_collisions(
                     if getattr(e, "remove_on_collision", True):
                         if hasattr(e, "spawn_splatter"):
                             e.spawn_splatter(groups)
+
+                        # ⭐ AUDIO: enemy death sound
+                        ch = pygame.mixer.find_channel()
+                        if ch:
+                            etype = getattr(e, "type", "")
+                            if etype == "SMALL_BUG":
+                                ch.play(sfx.get("bug_small_death"))
+                            elif etype == "BIG_BUG":
+                                ch.play(sfx.get("bug_big_death"))
+                            else:
+                                if sfx.get("explosion_small"):
+                                    ch.play(sfx["explosion_small"])
 
                         enemies.remove(e)
                         e.kill()

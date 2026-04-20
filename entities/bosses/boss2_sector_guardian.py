@@ -15,6 +15,17 @@ class Boss2(BaseBoss):
     def __init__(self, screen_w, screen_h, level, speed=BOSS_SPEED_BASE):
         super().__init__(screen_w, screen_h, level, speed * 1.2)
 
+        # -----------------------------------------
+        # AUDIO OVERRIDES FOR SECTOR GUARDIAN
+        # -----------------------------------------
+        self.sound_entry = "boss2_entry"
+        self.sound_hit = "boss2_hit"
+        self.sound_death = "boss2_death"
+        self.sound_bomb_launch = "boss2_bomb_launch"
+
+        # -----------------------------------------
+        # STATS & VISUALS
+        # -----------------------------------------
         self.max_health = (BOSS_HEALTH_BASE * 1.4) * (1.25 ** (level - 1))
         self.health = self.max_health
         self.contact_damage = 10
@@ -50,7 +61,10 @@ class Boss2(BaseBoss):
         angle = random.randint(60, 120)
         bomb = GravityBomb(self.rect.center, angle, self.screen_w, self.screen_h, dist)
 
-        # NEW: Correct group insertion
+        # ⭐ AUDIO: bomb launch
+        self.play_sound(self.sound_bomb_launch)
+
+        # Correct group insertion
         sprite_groups = self.groups()
         for g in sprite_groups:
             if hasattr(g, "name") and g.name == "all_sprites":

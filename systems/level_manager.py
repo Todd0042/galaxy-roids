@@ -20,7 +20,7 @@ from settings import (
 def start_level(level, width, height,
                 all_sprites, enemies, asteroids,
                 enemy_speed, enemies_per_side,
-                debugger=None):
+                debugger=None, state=None):
     """
     Spawns enemies + asteroids for the given level.
     Called at game start AND after each boss is defeated.
@@ -96,17 +96,26 @@ def start_level(level, width, height,
         debugger.add_log(f"[LEVEL {level}] Spawned {enemies_per_side * 2} enemies")
 
     # ==========================
-    #       LEVEL MUSIC
+    #   LEVEL MUSIC (FADE-IN)
     # ==========================
-    try:
-        from systems.audio import play_music
-        track = f"level{((level - 1) % 5) + 1}.midi"
-        play_music(track)
-        if debugger:
-            debugger.add_log(f"[LEVEL {level}] Music: {track}")
-    except Exception as e:
-        if debugger:
-            debugger.add_log(f"Music load failed: {e}")
+    if state and "sfx" in state:
+        sfx = state["sfx"]
+
+        # Reset boss music fade flag for this level
+        state["boss_music_started"] = False
+
+        # Choose track based on level number
+        track = f"assets/music/level{level}.ogg"
+
+        # ⭐ MUSIC: fade in level theme
+        if sfx.get("play_music"):
+            try:
+                sfx["play_music"](track, fade_ms=1200)
+                if debugger:
+                    debugger.add_log(f"[LEVEL {level}] Music: {track}")
+            except Exception as e:
+                if debugger:
+                    debugger.add_log(f"Music load failed: {e}")
 
     if debugger:
         debugger.add_log(f"Level {level} initialized successfully")

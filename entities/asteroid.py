@@ -13,7 +13,6 @@ class Asteroid(pygame.sprite.Sprite):
     def __init__(self, screen_w, screen_h, pos=None, size=3):
         super().__init__()
         
-
         self.screen_w = screen_w
         self.screen_h = screen_h
         self.size = size
@@ -46,11 +45,18 @@ class Asteroid(pygame.sprite.Sprite):
                                   random.uniform(vmin, vmax))
 
     # -------------------------------------------------
-    #   NEW: Split into smaller asteroids
+    #   Split into smaller asteroids
     # -------------------------------------------------
     def split(self, groups):
         if self.size <= 1:
             return  # smallest size does not split
+
+        # ⭐ AUDIO: asteroid break
+        sfx = groups.get("sfx")
+        if sfx and sfx.get("asteroid_break"):
+            ch = pygame.mixer.find_channel()
+            if ch:
+                ch.play(sfx["asteroid_break"])
 
         new_size = self.size - 1
 
@@ -62,7 +68,6 @@ class Asteroid(pygame.sprite.Sprite):
                 size=new_size
             )
 
-            # Give each child a random velocity
             vmin, vmax = ASTEROID_SPEED_RANGE
             a.vel = pygame.Vector2(
                 random.uniform(vmin, vmax),
@@ -80,9 +85,9 @@ class Asteroid(pygame.sprite.Sprite):
         boss_bullets = kwargs.get("boss_bullets")
         all_sprites = kwargs.get("all_sprites")
         groups = kwargs.get("groups")
+        state = kwargs.get("state")
 
         # NEW: dynamic screen size
-        state = kwargs.get("state")
         if state:
             self.screen_w = state["WIDTH"]
             self.screen_h = state["HEIGHT"]
@@ -113,7 +118,16 @@ class Asteroid(pygame.sprite.Sprite):
                     all_sprites.add(shot)
                 self.fire_cooldown = 180
 
-        # NEW: splitting hook
+        # Splitting + destruction
         if self.health <= 0 and groups:
+
+            # If this is the smallest asteroid → full destruction sound
+            if self.size <= 1:
+                sfx = groups.get("sfx")
+                if sfx and sfx.get("asteroid_destroy"):
+                    ch = pygame.mixer.find_channel()
+                    if ch:
+                        ch.play(sfx["asteroid_destroy"])
+
             self.split(groups)
             self.kill()

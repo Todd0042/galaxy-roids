@@ -1,29 +1,3 @@
-import pygame
-import random
-import math
-from settings import (
-    PLAYER_SIZE, CYAN, GOLDEN_YELLOW, PLAYER_ROT_SPEED, PLAYER_THRUST,
-    PLAYER_FRICTION, PLAYER_REVERSE_THRUST, PLAYER_BRAKE_FRICTION,
-    PLAYER_MAX_HEALTH, BLOB_STUN_TIME, SHRAPNEL_COOLDOWN_MAX
-)
-
-
-class TrailSegment(pygame.sprite.Sprite):
-    def __init__(self, pos):
-        super().__init__()
-        self.image = pygame.Surface((4, 4), pygame.SRCALPHA)
-        pygame.draw.circle(self.image, (220, 240, 255), (2, 2), 2)
-        self.rect = self.image.get_rect(center=pos)
-        self.alpha = 180
-
-    def update(self, **kwargs):
-        self.alpha -= 6
-        if self.alpha <= 0:
-            self.kill()
-        else:
-            self.image.set_alpha(self.alpha)
-
-
 class Player(pygame.sprite.Sprite):
     def __init__(self, screen_w, screen_h):
         super().__init__()
@@ -40,13 +14,11 @@ class Player(pygame.sprite.Sprite):
         self.screen_w = screen_w
         self.screen_h = screen_h
 
-        # --- Ship appearance (image-based) ---
+        # --- Ship appearance ---
         self.base_image = pygame.image.load("assets/player/player_ship.png").convert_alpha()
         self.engine_glow = pygame.image.load("assets/player/engine_glow.png").convert_alpha()
 
-        # Scale both to ~15%
         scale_factor = 0.10
-
         bw = int(self.base_image.get_width() * scale_factor)
         bh = int(self.base_image.get_height() * scale_factor)
         self.base_image = pygame.transform.smoothscale(self.base_image, (bw, bh))
@@ -62,10 +34,7 @@ class Player(pygame.sprite.Sprite):
         # --- Movement state ---
         self.pos = pygame.Vector2(self.rect.center)
         self.vel = pygame.Vector2(0, 0)
-
-        # IMPORTANT — forward = UP
         self.direction = pygame.Vector2(0, -1)
-
         self.angle = 0
         self.thrusting = False
 
@@ -84,9 +53,51 @@ class Player(pygame.sprite.Sprite):
         self.health = self.max_health
         self.stun_timer = 0
 
-        # --- Small shmup-style hitbox ---
+        # --- Hitbox ---
         self.hitbox_radius = 6.5
         self.hitbox_center = pygame.Vector2(self.pos)
+
+        # ⭐ AUDIO: dedicated engine loop channel
+        self.engine_channel = pygame.mixer.Channel(7)
+        self.engine_active = False
+
+        # ⭐ AUDIO: low health warning
+        self.low_health_channel = pygame.mixer.Channel(8)
+        self.low_health_active = False
+
+    # -------------------------------------------------
+    #   Engine Sound Logic
+    # -------------------------------------------------
+    def update_engine_sound(self, sfx):
+        snd = sfx.get("player_engine")
+        if snd is None:
+            return
+
+        if self.thrusting and not self.engine_active:
+            self.engine_channel.play(snd, loops=-1, fade_ms=150)
+            self.engine_active = True
+
+        elif not self.thrusting and self.engine_active:
+            self.engine_channel.fadeout(200)
+            self.engine_active = False
+
+    # -------------------------------------------------
+    #   Low Health Warning
+    # -------------------------------------------------
+    def update_low_health_sound(self, sfx):
+        snd = sfx.get("player_low_health")
+        if snd is None:
+            return
+
+        health_ratio = self.health / self.max_health
+
+        if health_ratio <= 0.25 and not self.low_health_active:
+            self.low_health_channel.play(snd, loops=-1, fade_ms=200)
+            self.low_health_active = True
+
+        elif health_ratio > 0.25 and self.low_health_active:
+            self.low_health_channel.fadeout(300)
+            self.low_health_active = False
 
     # -------------------------------------------------
     #   Appearance
@@ -97,10 +108,7 @@ class Player(pygame.sprite.Sprite):
 
     def rotate(self, angle_change):
         self.angle += angle_change
-
-        # IMPORTANT — forward = UP
         self.direction = pygame.Vector2(0, -1).rotate(self.angle)
-
         self.image = pygame.transform.rotate(self.base_image, -self.angle)
         self.rect = self.image.get_rect(center=self.pos)
 
@@ -112,6 +120,7 @@ class Player(pygame.sprite.Sprite):
         joysticks = kwargs.get("joysticks", [])
         trail_group = kwargs.get("trail_group")
         state = kwargs.get("state")
+        sfx = kwargs.get("sfx")  # ⭐ AUDIO
 
         # Dynamic screen size
         if state:
@@ -130,7 +139,7 @@ class Player(pygame.sprite.Sprite):
             self.vel = pygame.Vector2(0, 0)
 
         else:
-            # --- Joystick rotation & thrust ---
+            # Joystick rotation & thrust
             for joy in joysticks:
                 if joy.get_axis(0) < -0.3:
                     self.rotate(-self.rotation_speed)
@@ -144,7 +153,7 @@ class Player(pygame.sprite.Sprite):
                     self.vel *= PLAYER_BRAKE_FRICTION
                     self.vel -= self.direction * PLAYER_REVERSE_THRUST
 
-            # --- Keyboard rotation & thrust ---
+            # Keyboard rotation & thrust
             if keys[pygame.K_LEFT] or keys[pygame.K_a]:
                 self.rotate(-self.rotation_speed)
             if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
@@ -173,29 +182,21 @@ class Player(pygame.sprite.Sprite):
         # --- Engine Glow Animation ---
         if self.thrusting:
             t = pygame.time.get_ticks() * 0.01
-
-            # Alpha pulse
             pulse = 180 + int(75 * abs(math.sin(t)))
             self.engine_glow.set_alpha(pulse)
 
-            # Scale pulse
             scale = 1.0 + 0.05 * abs(math.sin(t * 0.5))
-
-            # Velocity stretch
             speed = self.vel.length()
             stretch = 1.0 + min(speed / 12, 0.6)
 
             w = int(self.engine_glow.get_width() * scale)
             h = int(self.engine_glow.get_height() * stretch)
-
-            self.engine_glow_scaled = pygame.transform.smoothscale(
-                self.engine_glow, (w, h)
-            )
+            self.engine_glow_scaled = pygame.transform.smoothscale(self.engine_glow, (w, h))
         else:
             self.engine_glow.set_alpha(0)
             self.engine_glow_scaled = self.engine_glow
 
-        # --- Visual flicker for stun/invulnerability ---
+        # --- Visual flicker ---
         if self.stun_timer > 0:
             self.image.set_alpha(150)
         elif self.invulnerable_timer % 10 > 5:
@@ -209,8 +210,13 @@ class Player(pygame.sprite.Sprite):
         if self.fire_cooldown > 0:
             self.fire_cooldown -= 1
 
-        # --- Sync hitbox center ---
+        # --- Sync hitbox ---
         self.hitbox_center = pygame.Vector2(self.pos)
+
+        # ⭐ AUDIO: engine loop
+        if sfx:
+            self.update_engine_sound(sfx)
+            self.update_low_health_sound(sfx)
 
     # -------------------------------------------------
     #   Draw
@@ -246,14 +252,30 @@ class Player(pygame.sprite.Sprite):
 
         self.update_appearance()
 
+    # -------------------------------------------------
+    #   Damage
+    # -------------------------------------------------
     def take_damage(self, amount):
         if self.invulnerable_timer > 0:
             return
+
         self.health -= amount
         self.invulnerable_timer = 60
         self.lose_powerup_level()
         self.stun_timer = 10
 
+        # ⭐ AUDIO: player hit
+        if hasattr(self, "sfx") and self.sfx.get("player_hit"):
+            ch = pygame.mixer.find_channel()
+            if ch:
+                ch.play(self.sfx["player_hit"])
+
     def apply_explosion(self, damage):
         self.health -= damage
         self.lose_powerup_level()
+
+        # ⭐ AUDIO: explosion damage
+        if hasattr(self, "sfx") and self.sfx.get("player_hit"):
+            ch = pygame.mixer.find_channel()
+            if ch:
+                ch.play(self.sfx["player_hit"])
