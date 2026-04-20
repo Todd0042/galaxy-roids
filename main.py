@@ -147,10 +147,13 @@ def main():
         # RENDER (NEW PIPELINE)
         # --------------------------
         # Draw everything to the dynamic render surface
-        render_frame(render_surface, player, groups, state, debugger)
+        render_frame(render_surface, player, groups, state, debugger, clock)
+
 
         # Blit the render surface to the actual window
-        screen.blit(render_surface, (0, 0))
+        scaled = pygame.transform.smoothscale(render_surface, (WIDTH, HEIGHT))
+        screen.blit(scaled, (0, 0))
+
         pygame.display.flip()
 
     # ==========================

@@ -1,12 +1,7 @@
-import pygame
-from ui.hud import (
-    draw_player_health_bar,
-    draw_shrapnel_cooldown,
-    draw_boss_health_bar
-)
+from ui.hud import draw as draw_hud
 
 
-def render_frame(surface, player, groups, state, debugger):
+def render_frame(surface, player, groups, state, debugger, clock):
     """
     Draws the entire frame to the provided surface:
     - Background
@@ -33,11 +28,6 @@ def render_frame(surface, player, groups, state, debugger):
     groups["all_sprites"].draw(surface)
 
     # ==========================
-    # Trails (draw like normal sprites)
-    # ==========================
-    groups["trail_group"].draw(surface)
-
-    # ==========================
     # Boss Laser (if active)
     # ==========================
     for boss in groups["boss_group"]:
@@ -54,13 +44,7 @@ def render_frame(surface, player, groups, state, debugger):
     # ==========================
     # HUD
     # ==========================
-    draw_player_health_bar(surface, player, state)
-    draw_shrapnel_cooldown(surface, player, state)
-
-    # Boss health bar (if boss exists)
-    boss = next(iter(groups["boss_group"]), None)
-    if boss:
-        draw_boss_health_bar(surface, boss, state)
+    draw_hud(surface, player, state, groups, clock)
 
     # ==========================
     # Debugger Overlay (if active)

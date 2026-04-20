@@ -45,7 +45,7 @@ class Player(pygame.sprite.Sprite):
         self.engine_glow = pygame.image.load("assets/player/engine_glow.png").convert_alpha()
 
         # Scale both to ~15%
-        scale_factor = 0.15
+        scale_factor = 0.10
 
         bw = int(self.base_image.get_width() * scale_factor)
         bh = int(self.base_image.get_height() * scale_factor)
@@ -63,7 +63,7 @@ class Player(pygame.sprite.Sprite):
         self.pos = pygame.Vector2(self.rect.center)
         self.vel = pygame.Vector2(0, 0)
 
-        # IMPORTANT FIX — forward = UP
+        # IMPORTANT — forward = UP
         self.direction = pygame.Vector2(0, -1)
 
         self.angle = 0
@@ -84,6 +84,10 @@ class Player(pygame.sprite.Sprite):
         self.health = self.max_health
         self.stun_timer = 0
 
+        # --- Small shmup-style hitbox ---
+        self.hitbox_radius = 6.5
+        self.hitbox_center = pygame.Vector2(self.pos)
+
     # -------------------------------------------------
     #   Appearance
     # -------------------------------------------------
@@ -94,7 +98,7 @@ class Player(pygame.sprite.Sprite):
     def rotate(self, angle_change):
         self.angle += angle_change
 
-        # IMPORTANT FIX — forward = UP
+        # IMPORTANT — forward = UP
         self.direction = pygame.Vector2(0, -1).rotate(self.angle)
 
         self.image = pygame.transform.rotate(self.base_image, -self.angle)
@@ -204,6 +208,9 @@ class Player(pygame.sprite.Sprite):
             self.shrapnel_cooldown -= 1
         if self.fire_cooldown > 0:
             self.fire_cooldown -= 1
+
+        # --- Sync hitbox center ---
+        self.hitbox_center = pygame.Vector2(self.pos)
 
     # -------------------------------------------------
     #   Draw

@@ -2,8 +2,6 @@ import pygame
 from entities.projectiles import Bullet, LaserBeam, HomingMissile
 from settings import LASER_FIRE_COOLDOWN, HOMING_FIRE_COOLDOWN
 
-AXIS_OFFSET = 90
-
 
 def handle_autofire(player, groups, sfx, state):
     """
@@ -53,11 +51,15 @@ def handle_autofire(player, groups, sfx, state):
     # -------------------------------------------------------
     if player.powerup_hits >= 1:
         for offset in (-15, 0, 15):
-            b = Bullet(player.pos, player.angle + offset, WIDTH, HEIGHT)
+            direction = player.direction.rotate(offset)
+            b = Bullet(player.pos, 0, WIDTH, HEIGHT)
+            b.vel = direction * b.vel.length()
             groups["bullets"].add(b)
             groups["all_sprites"].add(b)
     else:
-        b = Bullet(player.pos, player.angle, WIDTH, HEIGHT)
+        direction = player.direction
+        b = Bullet(player.pos, 0, WIDTH, HEIGHT)
+        b.vel = direction * b.vel.length()
         groups["bullets"].add(b)
         groups["all_sprites"].add(b)
 
@@ -71,7 +73,7 @@ def handle_autofire(player, groups, sfx, state):
         player.laser_cooldown -= 1
 
     if player.powerup_hits >= 4 and player.laser_cooldown <= 0:
-        forward = pygame.Vector2(0, -1).rotate(player.angle + AXIS_OFFSET)
+        forward = player.direction
         laser = LaserBeam(player.pos + forward * 20, forward, WIDTH, HEIGHT)
         groups["bullets"].add(laser)
         groups["all_sprites"].add(laser)
@@ -89,12 +91,12 @@ def handle_autofire(player, groups, sfx, state):
 
     if player.powerup_hits >= 5 and player.missile_cooldown <= 0:
 
-        forward = pygame.Vector2(0, -1).rotate(player.angle + AXIS_OFFSET)
-        right   = pygame.Vector2(1, 0).rotate(player.angle + AXIS_OFFSET)
+        forward = player.direction
+        right = forward.rotate(90)
 
         # LEFT MISSILE
         left_offset = right * -20
-        left_dir = right * -1
+        left_dir = forward.rotate(-45)
         m1 = HomingMissile(player.pos + left_offset, left_dir, WIDTH, HEIGHT, groups)
         groups["bullets"].add(m1)
         groups["all_sprites"].add(m1)
@@ -102,7 +104,7 @@ def handle_autofire(player, groups, sfx, state):
         # RIGHT MISSILE (powerup >= 6)
         if player.powerup_hits >= 6:
             right_offset = right * 20
-            right_dir = right * 1
+            right_dir = forward.rotate(45)
             m2 = HomingMissile(player.pos + right_offset, right_dir, WIDTH, HEIGHT, groups)
             groups["bullets"].add(m2)
             groups["all_sprites"].add(m2)

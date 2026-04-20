@@ -39,7 +39,12 @@ class Bullet(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=pos)
 
         self.pos = pygame.Vector2(pos)
-        self.vel = pygame.Vector2(BULLET_SPEED, 0).rotate(angle)
+
+        # IMPORTANT:
+        # 0° = UP, not right
+        # So we rotate from (0, -1) instead of (1, 0)
+        forward = pygame.Vector2(0, -1).rotate(angle)
+        self.vel = forward * BULLET_SPEED
 
         self.is_bomber_fragment = is_bomber_fragment
 
@@ -76,7 +81,11 @@ class ShrapnelBullet(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=pos)
 
         self.pos = pygame.Vector2(pos)
-        self.vel = pygame.Vector2(6, 0).rotate(angle)
+
+        # FIXED: 0° = UP
+        forward = pygame.Vector2(0, -1).rotate(angle)
+        self.vel = forward * 6
+
         self.timer = 40
         self.exploded = False
 
@@ -116,7 +125,10 @@ class GravityBomb(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=pos)
 
         self.pos = pygame.Vector2(pos)
-        self.vel = pygame.Vector2(4, 0).rotate(angle)
+
+        # FIXED: 0° = UP
+        forward = pygame.Vector2(0, -1).rotate(angle)
+        self.vel = forward * 4
 
         self.target_dist = target_dist
         self.dist_traveled = 0
@@ -263,16 +275,16 @@ def spawn_shrapnel_explosion(center, all_sprites=None, group=None):
 
     for i in range(12):
         angle = i * 30
-        frag = Bullet(
-            center,
-            angle,
-            9999,
-            9999,
-            color=(255, 200, 0),
-            size=4,
-            is_bomber_fragment=True
-        )
-        frag.vel *= 0.6
+
+        # FIXED: 0° = UP
+        direction = pygame.Vector2(0, -1).rotate(angle)
+
+        frag = Bullet(center, 0, 9999, 9999,
+                      color=(255, 200, 0),
+                      size=4,
+                      is_bomber_fragment=True)
+        frag.vel = direction * 6
+
         group.add(frag)
         if all_sprites:
             all_sprites.add(frag)
@@ -284,20 +296,20 @@ def spawn_gravity_explosion(center, all_sprites=None, group=None):
 
     for i in range(20):
         angle = i * 18
-        frag = Bullet(
-            center,
-            angle,
-            9999,
-            9999,
-            color=RED,
-            size=6,
-            is_bomber_fragment=True
-        )
-        frag.vel *= 0.4
+
+        direction = pygame.Vector2(0, -1).rotate(angle)
+
+        frag = Bullet(center, 0, 9999, 9999,
+                      color=RED,
+                      size=6,
+                      is_bomber_fragment=True)
+        frag.vel = direction * 4
+
         group.add(frag)
         if all_sprites:
             all_sprites.add(frag)
-            
+
+
 # ============================================================
 #   VENOM ORB (Boss3)
 # ============================================================
