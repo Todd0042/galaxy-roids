@@ -24,9 +24,13 @@ ORANGE = (255, 140, 0)
 # ==========================
 #   PLAYER SETTINGS
 # ==========================
-PLAYER_SIZE = 30
 PLAYER_MAX_HEALTH = 100
 INITIAL_LIVES = 15
+PLAYER_SCALE = 0.25
+PLAYER_HITBOX_RADIUS = 4.5
+PLAYER_INVULN_TIME = 60
+PLAYER_STUN_TIME = 10
+PLAYER_SIZE = 30
 
 # Movement
 PLAYER_ROT_SPEED = 5
@@ -46,12 +50,13 @@ SPREAD_HITS_REVERT = 1
 #   PLAYER WEAPON TIMING
 # ==========================
 
-LASER_FIRE_COOLDOWN = 4        # frames between laser shots
-HOMING_FIRE_COOLDOWN = 6      # frames between missile shots
+LASER_FIRE_COOLDOWN = 10        # frames between laser shots
+HOMING_FIRE_COOLDOWN = 20      # frames between missile shots
 
 
 # Rapid-fire toggle
 ENABLE_RAPID_FIRE = True
+RAPID_FIRE_COOLDOWN = 20
 RAPID_FIRE_REQUIRED_POWERUPS = 2
 
 # Status Effects

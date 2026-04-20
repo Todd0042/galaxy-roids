@@ -1,6 +1,7 @@
 import pygame
 import math
 import random
+import os
 
 # Player constants
 from settings import (
@@ -10,6 +11,11 @@ from settings import (
     PLAYER_BRAKE_FRICTION,
     PLAYER_REVERSE_THRUST,
     PLAYER_MAX_HEALTH,
+    PLAYER_SCALE,
+    PLAYER_HITBOX_RADIUS,
+    PLAYER_INVULN_TIME,
+    PLAYER_STUN_TIME,
+    RAPID_FIRE_COOLDOWN,
 )
 
 # Colors
@@ -24,7 +30,7 @@ class Player(pygame.sprite.Sprite):
         super().__init__()
 
         # --- Rapid-fire state ---
-        self.fire_cooldown = 0
+        self.fire_cooldown = RAPID_FIRE_COOLDOWN
         self.fire_button_held = False
 
         # --- Asteroid collision cooldown ---
@@ -38,8 +44,12 @@ class Player(pygame.sprite.Sprite):
         # --- Ship appearance ---
         self.base_image = pygame.image.load("assets/player/player_ship.png").convert_alpha()
         self.engine_glow = pygame.image.load("assets/player/engine_glow.png").convert_alpha()
+        print("Glow path:", os.path.abspath("assets/player/engine_glow.png"))
+        print("Glow size:", self.engine_glow.get_size())
 
-        scale_factor = 0.25
+        # ⭐ Apply PLAYER_SCALE from settings
+        scale_factor = PLAYER_SCALE
+
         bw = int(self.base_image.get_width() * scale_factor)
         bh = int(self.base_image.get_height() * scale_factor)
         self.base_image = pygame.transform.smoothscale(self.base_image, (bw, bh))
@@ -75,7 +85,7 @@ class Player(pygame.sprite.Sprite):
         self.stun_timer = 0
 
         # --- Hitbox ---
-        self.hitbox_radius = 4.5
+        self.hitbox_radius = PLAYER_HITBOX_RADIUS
         self.hitbox_center = pygame.Vector2(self.pos)
 
         # ⭐ AUDIO: dedicated engine loop channel
@@ -85,6 +95,13 @@ class Player(pygame.sprite.Sprite):
         # ⭐ AUDIO: low health warning
         self.low_health_channel = pygame.mixer.Channel(8)
         self.low_health_active = False
+
+        # ⭐ Will be assigned in update()
+        self.sfx = None
+
+        # ⭐ Screen shake / flash helpers
+        self.state = None
+        self.flash_timer = 0
 
     # -------------------------------------------------
     #   Engine Sound Logic
@@ -134,6 +151,20 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.pos)
 
     # -------------------------------------------------
+    #   Screen Shake Hook
+    # -------------------------------------------------
+    def trigger_screen_shake(self, intensity=6, duration=12):
+        if self.state is not None:
+            self.state["SCREEN_SHAKE_INTENSITY"] = intensity
+            self.state["SCREEN_SHAKE_TIMER"] = duration
+
+    # -------------------------------------------------
+    #   Flash Hook
+    # -------------------------------------------------
+    def trigger_hit_flash(self):
+        self.flash_timer = 6  # frames of flash
+
+    # -------------------------------------------------
     #   Main Update
     # -------------------------------------------------
     def update(self, **kwargs):
@@ -141,7 +172,13 @@ class Player(pygame.sprite.Sprite):
         joysticks = kwargs.get("joysticks", [])
         trail_group = kwargs.get("trail_group")
         state = kwargs.get("state")
-        sfx = kwargs.get("sfx")  # ⭐ AUDIO
+        sfx = kwargs.get("sfx")
+
+        # ⭐ Assign sfx so damage sounds work
+        self.sfx = sfx
+
+        # ⭐ Keep state reference for screen shake
+        self.state = state
 
         # Dynamic screen size
         if state:
@@ -153,6 +190,10 @@ class Player(pygame.sprite.Sprite):
         # --- Invulnerability flicker ---
         if self.invulnerable_timer > 0:
             self.invulnerable_timer -= 1
+
+        # --- Hit flash decay ---
+        if self.flash_timer > 0:
+            self.flash_timer -= 1
 
         # --- Stun stops movement ---
         if self.stun_timer > 0:
@@ -186,12 +227,31 @@ class Player(pygame.sprite.Sprite):
                 self.vel *= PLAYER_BRAKE_FRICTION
                 self.vel -= self.direction * PLAYER_REVERSE_THRUST
 
-        # --- Engine trail ---
+        # -------------------------------------------------
+        #   ⭐ 3‑POINT TRAIL SYSTEM (center stable, sides jittered)
+        # -------------------------------------------------
         if self.thrusting and trail_group is not None:
-            for side in [-1, 1]:
-                offset = self.direction.rotate(90 * side) * 8 - self.direction * 10
-                jitter = pygame.Vector2(random.uniform(-1, 1), random.uniform(-1, 1))
-                trail_group.add(TrailSegment(self.pos + offset + jitter))
+            # Base trail position (behind glow)
+            glow_offset = self.image.get_height() * 0.30
+            trail_offset = self.image.get_height() * 0.55
+            trail_base = self.pos + (-self.direction * trail_offset)
+
+            # Perpendicular vector for left/right
+            normal = pygame.Vector2(-self.direction.y, self.direction.x)
+
+            # Center trail (stable, slightly further back)
+            center_pos = trail_base + (-self.direction * (self.image.get_height() * 0.05))
+            trail_group.add(TrailSegment(center_pos))
+
+            # Left trail (jittered, wider)
+            left_pos = trail_base + normal * (self.image.get_width() * 0.30)
+            left_pos += pygame.Vector2(random.uniform(-1, 1), random.uniform(-1, 1))
+            trail_group.add(TrailSegment(left_pos))
+
+            # Right trail (jittered, wider)
+            right_pos = trail_base - normal * (self.image.get_width() * 0.30)
+            right_pos += pygame.Vector2(random.uniform(-1, 1), random.uniform(-1, 1))
+            trail_group.add(TrailSegment(right_pos))
 
         # --- Movement physics ---
         self.vel *= self.friction
@@ -217,8 +277,11 @@ class Player(pygame.sprite.Sprite):
             self.engine_glow.set_alpha(0)
             self.engine_glow_scaled = self.engine_glow
 
-        # --- Visual flicker ---
-        if self.stun_timer > 0:
+        # --- Visual flicker + flash ---
+        if self.flash_timer > 0:
+            # Hit flash overrides flicker
+            self.image.set_alpha(255)
+        elif self.stun_timer > 0:
             self.image.set_alpha(150)
         elif self.invulnerable_timer % 10 > 5:
             self.image.set_alpha(0)
@@ -234,7 +297,7 @@ class Player(pygame.sprite.Sprite):
         # --- Sync hitbox ---
         self.hitbox_center = pygame.Vector2(self.pos)
 
-        # ⭐ AUDIO: engine loop
+        # ⭐ AUDIO: engine loop + low health warning
         if sfx:
             self.update_engine_sound(sfx)
             self.update_low_health_sound(sfx)
@@ -243,11 +306,8 @@ class Player(pygame.sprite.Sprite):
     #   Draw
     # -------------------------------------------------
     def draw(self, surface):
-        if self.thrusting:
-            glow_img = self.engine_glow_scaled
-            glow_rect = glow_img.get_rect(center=self.rect.center)
-            surface.blit(glow_img, glow_rect)
-
+        # Only draw the ship here.
+        # Glow is drawn by the renderer BEFORE the player.
         surface.blit(self.image, self.rect)
 
     # -------------------------------------------------
@@ -281,12 +341,16 @@ class Player(pygame.sprite.Sprite):
             return
 
         self.health -= amount
-        self.invulnerable_timer = 60
+        self.invulnerable_timer = PLAYER_INVULN_TIME
         self.lose_powerup_level()
-        self.stun_timer = 10
+        self.stun_timer = PLAYER_STUN_TIME
+
+        # ⭐ Screen shake + flash
+        self.trigger_screen_shake(intensity=6, duration=12)
+        self.trigger_hit_flash()
 
         # ⭐ AUDIO: player hit
-        if hasattr(self, "sfx") and self.sfx.get("player_hit"):
+        if self.sfx and self.sfx.get("player_hit"):
             ch = pygame.mixer.find_channel()
             if ch:
                 ch.play(self.sfx["player_hit"])
@@ -296,19 +360,13 @@ class Player(pygame.sprite.Sprite):
         self.lose_powerup_level()
 
         # ⭐ AUDIO: explosion damage
-        if hasattr(self, "sfx") and self.sfx.get("player_hit"):
+        if self.sfx and self.sfx.get("player_hit"):
             ch = pygame.mixer.find_channel()
             if ch:
                 ch.play(self.sfx["player_hit"])
-
 
     # -------------------------------------------------
     #   Generic Damage Entry Point (used by enemies)
     # -------------------------------------------------
     def apply_damage(self, amount):
-        """
-        Unified damage handler for all non-explosion enemy hits.
-        Stingers, regular enemies, etc. call this.
-        """
         self.take_damage(amount)
-

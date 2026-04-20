@@ -1,23 +1,25 @@
 import pygame
-from settings import PLAYER_MAX_HEALTH
+from settings import (
+    PLAYER_MAX_HEALTH,
+    PLAYER_INVULN_TIME,
+    PLAYER_STUN_TIME,
+)
 
 
 def handle_player_death(player, state):
     """
-    Handles player death exactly like the original main.py:
+    Handles player death using settings-driven values:
 
     - Decrements lives
     - Ends game if lives <= 0
-    - Respawns player at center (dynamic window size)
+    - Respawns player at dynamic center
     - Resets velocity
     - Restores health
-    - Applies invulnerability timer
-
-    Returns:
-        True  – player respawned, continue game
-        False – no lives left, game over
+    - Applies invulnerability timer (from settings)
+    - Applies stun timer (from settings)
     """
 
+    # Lose a life
     state["lives"] -= 1
 
     # No lives left → game over
@@ -36,7 +38,8 @@ def handle_player_death(player, state):
     if hasattr(player, "rect"):
         player.rect.center = (int(player.pos.x), int(player.pos.y))
 
-    # Temporary invulnerability (matches original 120 frames)
-    player.invulnerable_timer = 120
+    # Apply invulnerability and stun from settings
+    player.invulnerable_timer = PLAYER_INVULN_TIME
+    player.stun_timer = PLAYER_STUN_TIME
 
     return True

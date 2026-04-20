@@ -155,4 +155,27 @@ def handle_boss_collisions(player, groups, state, sfx):
             # ⭐ SHAKE: tail strike impact
             state["screenshake"] = max(state.get("screenshake", 0), 14)
 
+    # -----------------------------
+    # Boss2 Laser Beams → player
+    # -----------------------------
+    for laser in groups.get("boss_bullets", []):
+        if laser.__class__.__name__ == "Boss2LaserBeam":
+
+            # Skip beams that haven't run update() yet
+            if not hasattr(laser, "world_hitbox"):
+                continue
+
+            if player.rect.colliderect(laser.world_hitbox):
+                player.health -= laser.damage
+                player.lose_powerup_level()
+
+                # ⭐ AUDIO: laser hit
+                ch = pygame.mixer.find_channel()
+                if ch and sfx.get(boss.sound_laser_fire):
+                    ch.play(sfx[boss.sound_laser_fire])
+
+                # ⭐ SHAKE: laser impact
+                state["screenshake"] = max(state.get("screenshake", 0), 10)
+
+
     return False

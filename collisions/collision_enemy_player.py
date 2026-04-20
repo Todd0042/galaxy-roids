@@ -36,6 +36,9 @@ def handle_enemy_player_collisions(player, groups, state, sfx):
                           enemy.hitbox_center, enemy.hitbox_radius):
                 player.take_damage(enemy.contact_damage)
 
+                if player.health <= 0:
+                    return True
+
     # ------------------------------------------------------------
     #   PLAYER COLLISION WITH ASTEROIDS
     # ------------------------------------------------------------
@@ -50,6 +53,9 @@ def handle_enemy_player_collisions(player, groups, state, sfx):
                           rock.hitbox_center, rock.hitbox_radius):
                 player.take_damage(rock.contact_damage)
 
+                if player.health <= 0:
+                    return True
+
     # ------------------------------------------------------------
     #   PLAYER COLLISION WITH BOSS BODY
     # ------------------------------------------------------------
@@ -63,6 +69,9 @@ def handle_enemy_player_collisions(player, groups, state, sfx):
             if circle_hit(player.hitbox_center, player.hitbox_radius,
                           boss.hitbox_center, boss.hitbox_radius):
                 player.take_damage(10)
+
+                if player.health <= 0:
+                    return True
 
     # ------------------------------------------------------------
     #   PLAYER COLLISION WITH BOSS BULLETS
@@ -79,9 +88,11 @@ def handle_enemy_player_collisions(player, groups, state, sfx):
                 player.take_damage(5)
                 bullet.kill()
 
+                if player.health <= 0:
+                    return True
+
     # ============================================================
     #   HAZARD POOL LOGIC (Boss3)
-    #   (KEEP RECT COLLISION — POOLS ARE LARGE AREAS)
     # ============================================================
     if hazards:
         player_in_pool = False
@@ -103,6 +114,9 @@ def handle_enemy_player_collisions(player, groups, state, sfx):
                     player.take_damage(HAZARD_DAMAGE)
                     player.hazard_dot_timer = HAZARD_DOT_INTERVAL
 
+                    if player.health <= 0:
+                        return True
+
                 # Reset lingering slow timer
                 player.hazard_slow_timer = HAZARD_LINGER_TIME
 
@@ -118,3 +132,11 @@ def handle_enemy_player_collisions(player, groups, state, sfx):
             else:
                 player.speed_multiplier = 1.0
                 player.hazard_dot_timer = 0
+
+    # ============================================================
+    #   FINAL DEATH CHECK (centralized)
+    # ============================================================
+    if player.health <= 0:
+        return True
+
+    return False

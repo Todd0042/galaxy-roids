@@ -1,6 +1,7 @@
 import pygame
+import systems.audio as audio   # ⭐ REQUIRED for play_sfx
 from entities.projectiles import Bullet, LaserBeam, HomingMissile
-from settings import LASER_FIRE_COOLDOWN, HOMING_FIRE_COOLDOWN
+from settings import LASER_FIRE_COOLDOWN, HOMING_FIRE_COOLDOWN, RAPID_FIRE_COOLDOWN
 
 
 def handle_autofire(player, groups, sfx, state):
@@ -23,58 +24,60 @@ def handle_autofire(player, groups, sfx, state):
     if not player.fire_button_held and player.powerup_hits < 2:
         return
 
-    # Single-shot mode (powerups < 2)
+    # -------------------------------------------------------
+    #   SINGLE-SHOT MODE (powerups < 2)
+    # -------------------------------------------------------
     if player.powerup_hits < 2:
         if not player.fire_button_held:
             return
         if state.get("single_shot_fired", False):
             return
 
-        # ⭐ AUDIO: single-shot pew
-        ch = pygame.mixer.find_channel()
-        if ch and sfx.get("weapon_pew"):
-            ch.play(sfx["weapon_pew"])
-
+        audio.play_sfx(sfx, "weapon_pew")
         state["single_shot_fired"] = True
-    else:
-        state["single_shot_fired"] = False
+
+        # Normal single bullet
+        direction = player.direction
+        b = Bullet(player.pos, 0, WIDTH, HEIGHT)
+        b.vel = direction * b.vel.length()
+        groups["bullets"].add(b)
+        groups["all_sprites"].add(b)
+        return
+
+    # Reset single-shot flag when in rapid-fire mode
+    state["single_shot_fired"] = False
 
     # -------------------------------------------------------
-    #   AUTO-FIRE PEW (FIRST SHOT INSTANT)
+    #   RAPID-FIRE MODE (powerups >= 2)
     # -------------------------------------------------------
+    if not player.fire_button_held:
+        return
+
     now = pygame.time.get_ticks()
-    MIN_SPACING = 160  # keep your existing delay
-
     last = state.get("last_pew_time")
 
-    # First pew is instant
+    # First shot is instant
     if last is None:
         can_fire = True
-
-    # Subsequent pews follow spacing
-    elif now - last >= MIN_SPACING:
-        can_fire = True
-
     else:
-        can_fire = False
+        can_fire = (now - last) >= RAPID_FIRE_COOLDOWN
 
     if can_fire:
-        ch = pygame.mixer.find_channel()
-        if ch and sfx.get("weapon_pew"):
-            ch.play(sfx["weapon_pew"])
-
+        audio.play_sfx(sfx, "weapon_pew")
         state["last_pew_time"] = now
+
+        # Fire the bullet
+        direction = player.direction
+        b = Bullet(player.pos, 0, WIDTH, HEIGHT)
+        b.vel = direction * b.vel.length()
+        groups["bullets"].add(b)
+        groups["all_sprites"].add(b)
 
     # -------------------------------------------------------
     #   SPREAD SHOT (powerup >= 1)
     # -------------------------------------------------------
     if player.powerup_hits >= 1:
-
-        # ⭐ AUDIO: spread-shot accent (optional)
-        if sfx.get("weapon_spread"):
-            ch = pygame.mixer.find_channel()
-            if ch:
-                ch.play(sfx["weapon_spread"])
+        audio.play_sfx(sfx, "weapon_spread")
 
         for offset in (-15, 0, 15):
             direction = player.direction.rotate(offset)
@@ -82,13 +85,6 @@ def handle_autofire(player, groups, sfx, state):
             b.vel = direction * b.vel.length()
             groups["bullets"].add(b)
             groups["all_sprites"].add(b)
-
-    else:
-        direction = player.direction
-        b = Bullet(player.pos, 0, WIDTH, HEIGHT)
-        b.vel = direction * b.vel.length()
-        groups["bullets"].add(b)
-        groups["all_sprites"].add(b)
 
     # -------------------------------------------------------
     #   LASER BEAM (powerup >= 4)
@@ -101,11 +97,8 @@ def handle_autofire(player, groups, sfx, state):
 
     if player.powerup_hits >= 4 and player.laser_cooldown <= 0:
 
-        # ⭐ AUDIO: optional laser charge
-        if sfx.get("weapon_laser_charge"):
-            ch = pygame.mixer.find_channel()
-            if ch:
-                ch.play(sfx["weapon_laser_charge"])
+        # ⭐ AUDIO: laser charge
+        audio.play_sfx(sfx, "weapon_laser_charge")
 
         forward = player.direction
         laser = LaserBeam(player.pos + forward * 20, forward, WIDTH, HEIGHT)
@@ -113,9 +106,7 @@ def handle_autofire(player, groups, sfx, state):
         groups["all_sprites"].add(laser)
 
         # ⭐ AUDIO: laser fire
-        ch = pygame.mixer.find_channel()
-        if ch and sfx.get("weapon_laser"):
-            ch.play(sfx["weapon_laser"])
+        audio.play_sfx(sfx, "weapon_laser")
 
         player.laser_cooldown = LASER_FIRE_COOLDOWN
 
@@ -149,9 +140,7 @@ def handle_autofire(player, groups, sfx, state):
             groups["all_sprites"].add(m2)
 
         # ⭐ AUDIO: missile launch
-        ch = pygame.mixer.find_channel()
-        if ch and sfx.get("weapon_missile"):
-            ch.play(sfx["weapon_missile"])
+        audio.play_sfx(sfx, "weapon_missile")
 
         player.missile_cooldown = HOMING_FIRE_COOLDOWN
 

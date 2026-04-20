@@ -1,8 +1,13 @@
 import pygame
 import math
+import systems.audio as audio
 
 from core.spawner import spawn_shrapnel_explosion
-
+from settings import (
+    INITIAL_LIVES,
+    ENEMY_SPEED,
+    BOSS_SPEED_BASE,
+)
 
 class BaseBoss(pygame.sprite.Sprite):
     ...
@@ -14,6 +19,7 @@ def initialize_game():
     pygame.init()
     pygame.mixer.init()
     pygame.mixer.set_num_channels(128)
+    print("INITIAL_LIVES =", INITIAL_LIVES)
 
 
     # 1. Create a borderless resizable window
@@ -51,7 +57,7 @@ def initialize_game():
 
     # ==========================
     # PLAYER
-    # ==========================
+    # ==========================    
     "player_engine":        "assets/sfx/player/player_engine.wav",
     "player_hit":           "assets/sfx/player/player_hit.wav",
     "player_low_health":    "assets/sfx/player/player_low_health.wav",
@@ -64,6 +70,8 @@ def initialize_game():
     "weapon_spread":        "assets/sfx/weapons/weapon_spread.wav",
     "weapon_laser_charge":  "assets/sfx/weapons/weapon_laser_charge.wav",
     "weapon_missile":       "assets/sfx/weapons/weapon_missile.wav",
+    "grenade_launch":       "assets/sfx/weapons/grenade_launch.wav",
+    "grenade_explode":      "assets/sfx/weapons/grenade_explode.wav",
 
     # ==========================
     # POWERUPS
@@ -71,7 +79,6 @@ def initialize_game():
     "powerup_spawn":        "assets/sfx/powerups/powerup_spawn.wav",
     "powerup_pickup":       "assets/sfx/powerups/powerup_pickup.wav",
 
-    # ==========================
     # ASTEROIDS
     # ==========================
     "asteroid_break":       "assets/sfx/asteroids/asteroid_break.wav",
@@ -133,9 +140,25 @@ def initialize_game():
     "level_complete":       "assets/sfx/level/level_complete.wav",
 })
 
+    audio.set_sfx_cooldown("laser", 0.5)
+    audio.set_sfx_cooldown("explosion_small", 0.25)
+    audio.set_sfx_cooldown("explosion_big", 0.4)
+    audio.set_sfx_cooldown("ui_click", 0.1)
+    audio.set_sfx_cooldown("weapon_pew", 0.0)
+    audio.set_sfx_cooldown("weapon_spread", 0.0)
+    audio.set_sfx_cooldown("weapon_laser", 0.0)
+    audio.set_sfx_cooldown("weapon_laser_charge", 0.0)
+    audio.set_sfx_cooldown("weapon_missile", 0.0)
+
 
     # Add music loader
-    sfx["play_music"] = play_music
+    sfx["play_music"] = audio.play_music
+
+    # ⭐ FORCE DEFAULT MUSIC MODE
+    audio.music_mode = "16bit"
+
+    # ⭐ START MENU MUSIC
+    audio.play_music("menu_theme")
 
     # ============================================================
     #   DEBUGGER
@@ -185,15 +208,18 @@ def initialize_game():
         "WIDTH": WIDTH,
         "HEIGHT": HEIGHT,
         "score": 0,
-        "lives": 3,
+        "lives": INITIAL_LIVES,
         "level": 1,
         "game_active": False,
         "boss_spawned": False,
         "last_pew_time": None,
         "last_periodic_spawn": 0,
         "level_start_time": pygame.time.get_ticks(),
-        "current_enemy_speed": 1.0,
-        "current_boss_speed": 1.0,
+
+        # Apply difficulty settings
+        "current_enemy_speed": ENEMY_SPEED,
+        "current_boss_speed": BOSS_SPEED_BASE,
+
         "enemies_per_side": 4,
         "screenshake": 0,
         "sfx": sfx,
@@ -217,3 +243,4 @@ def initialize_game():
         "WIDTH": WIDTH,
         "HEIGHT": HEIGHT,
     }
+

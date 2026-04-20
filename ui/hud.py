@@ -112,7 +112,9 @@ def draw_player_meta(surface, player, state):
     x = 20
     y = 64
 
-    lives = getattr(player, "lives", 3)
+    # ⭐ Correct source of truth for lives
+    lives = state.get("lives", 0)
+
     score = state.get("score", 0)
     difficulty = state.get("difficulty", "NORMAL")
 
@@ -121,6 +123,7 @@ def draw_player_meta(surface, player, state):
 
     _draw_text(surface, f"DIFFICULTY: {difficulty}",
                x, y + 20, size=14, color=(150, 200, 220))
+
 
 
 # ============================================================

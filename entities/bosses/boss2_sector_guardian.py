@@ -5,6 +5,7 @@ from settings import (
     BOSS_HEALTH_BASE, BOSS_SPEED_BASE, WHITE
 )
 from entities.projectiles import GravityBomb
+from entities.projectiles import Boss2LaserBeam
 from .base_boss import BaseBoss
 
 class Boss2(BaseBoss):
@@ -14,6 +15,12 @@ class Boss2(BaseBoss):
 
     def __init__(self, screen_w, screen_h, level, speed=BOSS_SPEED_BASE):
         super().__init__(screen_w, screen_h, level, speed * 1.2)
+
+        # Even-numbered levels get the death laser
+        self.enable_death_laser = (level % 2 == 0)
+        self.death_laser_cooldown = 30   # ~5 seconds
+        print("Laser enabled:", self.enable_death_laser)
+
 
         # -----------------------------------------
         # AUDIO OVERRIDES FOR SECTOR GUARDIAN
@@ -33,7 +40,6 @@ class Boss2(BaseBoss):
 
         self.contact_damage = 10
 
-
         self.image = pygame.Surface((180, 100), pygame.SRCALPHA)
         pygame.draw.rect(self.image, (150, 0, 255), (0, 0, 180, 60), border_radius=20)
         pygame.draw.rect(self.image, WHITE, (40, 60, 20, 40))
@@ -42,7 +48,7 @@ class Boss2(BaseBoss):
         self.rect = self.image.get_rect()
 
         self.target_y = 150
-        self.bomb_cooldown = 180
+        self.bomb_cooldown = 60   # faster bombs
 
     # ---------------------------------------------------------
     #   MOVEMENT — dynamic horizontal + vertical sway
@@ -53,24 +59,75 @@ class Boss2(BaseBoss):
         self.pos.y = self.target_y + math.cos(ticks * 0.003) * 50
 
     # ---------------------------------------------------------
-    #   ATTACK — gravity bombs
+    #   ATTACK — gravity bombs + death laser
     # ---------------------------------------------------------
     def update_attacks(self, player_pos=None, groups=None, state=None):
+
+        # -------------------------
+        # Gravity Bombs
+        # -------------------------
         if self.bomb_cooldown > 0:
             self.bomb_cooldown -= 1
-            return
+        else:
+            dist = random.randint(200, 600)
 
-        # Fire gravity bomb
-        dist = random.randint(200, 600)
-        angle = random.randint(135, 225)
-        bomb = GravityBomb(self.rect.center, angle, self.screen_w, self.screen_h, dist)
+            # Downward cone (your angle system: 180° = down)
+            angle = random.randint(135, 225)
 
-        # ⭐ AUDIO: bomb launch
-        self.play_sound(self.sound_bomb_launch)
+            bomb = GravityBomb(self.rect.center, angle, self.screen_w, self.screen_h, dist)
 
-        # Correct group insertion
-        groups["all_sprites"].add(bomb)
-        groups["gravity_bombs"].add(bomb)
+            self.play_sound(self.sound_bomb_launch)
+
+            groups["all_sprites"].add(bomb)
+            groups["gravity_bombs"].add(bomb)
+
+            self.bomb_cooldown = 60
+
+        # -------------------------
+        # Death Laser (even levels only)
+        # -------------------------
+        if self.enable_death_laser:
+
+            if self.death_laser_cooldown > 0:
+                self.death_laser_cooldown -= 1
+            else:
+                self.fire_death_laser(groups)
+                self.death_laser_cooldown = 300
+
+    # ---------------------------------------------------------
+    #   ATTACK — Death Laser (3‑way spread)
+    # ---------------------------------------------------------
+    def fire_death_laser(self, groups):
+        angles = [180, 165, 195]
+
+        # Slow the boss while firing
+        self.speed_multiplier = 0.25
+        self.laser_slow_timer = 90  # 1.5 seconds
+
+        for ang in angles:
+            laser = Boss2LaserBeam(
+                boss=self,
+                angle=ang,
+                screen_w=self.screen_w,
+                screen_h=self.screen_h,
+                duration=90
+            )
+
+            groups["all_sprites"].add(laser)
+            groups["boss_bullets"].add(laser)
+
+        self.play_sound("boss1_laser")
+
+    def update(self, player_pos=None, groups=None, state=None, **kwargs):
+        # Laser slow-down logic
+        if hasattr(self, "laser_slow_timer") and self.laser_slow_timer > 0:
+            self.laser_slow_timer -= 1
+            self.speed_multiplier = 0.25
+        else:
+            self.speed_multiplier = 1.0
+
+        # Call BaseBoss update (movement + attacks)
+        super().update(player_pos=player_pos, groups=groups, state=state, **kwargs)
 
 
-        self.bomb_cooldown = 60
+
