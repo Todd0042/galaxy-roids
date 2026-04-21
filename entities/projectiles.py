@@ -63,7 +63,7 @@ class Bullet(pygame.sprite.Sprite):
             self.kill()
 
 # ============================================================
-#   SHRAPNEL BULLET
+#   SHRAPNEL BULLET (FULL GRENADE VERSION)
 # ============================================================
 class ShrapnelBullet(pygame.sprite.Sprite):
     def __init__(self, pos, angle, screen_w, screen_h):
@@ -72,39 +72,59 @@ class ShrapnelBullet(pygame.sprite.Sprite):
         self.screen_w = screen_w
         self.screen_h = screen_h
 
+        # Visual
         self.image = pygame.Surface((12, 12), pygame.SRCALPHA)
         pygame.draw.circle(self.image, (255, 200, 0), (6, 6), 6)
         self.rect = self.image.get_rect(center=pos)
 
+        # Movement
         self.pos = pygame.Vector2(pos)
-
         forward = pygame.Vector2(0, -1).rotate(angle)
         self.vel = forward * 6
 
-        # ❌ no audio here – sfx isn't available in __init__
-
+        # Fuse timer
         self.timer = 500
         self.exploded = False
-        self.explosion_sound_played = False  # avoid double-play
+
+    def explode(self, groups, sfx):
+        if self.exploded:
+            return
+
+        self.exploded = True
+
+        # Correct explosion sound
+        audio.play_sfx(sfx, "grenade_explode")
+
+        # Spawn the 12-fragment radial burst
+        spawn_shrapnel_explosion(
+            self.rect.center,
+            groups["all_sprites"],
+            groups["bullets"]
+        )
+
+        self.kill()
 
     def update(self, **kwargs):
         state = kwargs.get("state")
-        sfx = kwargs.get("sfx")  # ⭐ AUDIO
+        sfx = kwargs.get("sfx")
+        groups = kwargs.get("groups")
 
+        # Update screen size if resized
         if state:
             self.screen_w = state["WIDTH"]
             self.screen_h = state["HEIGHT"]
 
+        # Movement
         self.pos += self.vel
         self.rect.center = self.pos
 
+        # Fuse countdown
         self.timer -= 1
-        if self.timer <= 0 and not self.exploded:
-            self.exploded = True
-            if sfx is not None and not self.explosion_sound_played:
-                audio.play_sfx(sfx, "grenade_launch")
-                self.explosion_sound_played = True
+        if self.timer <= 0:
+            self.explode(groups, sfx)
+            return
 
+        # Off-screen cleanup
         if (
             self.pos.x < -50 or
             self.pos.x > self.screen_w + 50 or

@@ -87,7 +87,7 @@ def run_level_select(font, state):
 
             if event.type == pygame.QUIT:
                 pygame.quit()
-                raise SystemExit
+                raise SystemExit(0)
 
             if event.type == pygame.KEYDOWN:
 
@@ -106,7 +106,7 @@ def run_level_select(font, state):
 
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
-                    raise SystemExit
+                    raise SystemExit(0)
 
     return selected_start_level
 

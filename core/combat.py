@@ -1,9 +1,85 @@
 import pygame
 import systems.audio as audio   # ⭐ REQUIRED for play_sfx
-from entities.projectiles import Bullet, LaserBeam, HomingMissile
+from entities.projectiles import Bullet, LaserBeam, HomingMissile, ShrapnelBullet
 from settings import LASER_FIRE_COOLDOWN, HOMING_FIRE_COOLDOWN, RAPID_FIRE_COOLDOWN
 
 
+# ============================================================
+#   ⭐ MEGABOMB PROJECTILE (patched with .exploded flag)
+# ============================================================
+class MegaBomb(pygame.sprite.Sprite):
+    def __init__(self, pos, screen_w, screen_h):
+        super().__init__()
+
+        self.screen_w = screen_w
+        self.screen_h = screen_h
+
+        # ⭐ Required for collision system
+        self.exploded = False
+
+        # Big glowing orb
+        self.image = pygame.Surface((48, 48), pygame.SRCALPHA)
+        pygame.draw.circle(self.image, (255, 120, 20), (24, 24), 24)
+        self.rect = self.image.get_rect(center=pos)
+
+        self.pos = pygame.Vector2(pos)
+        self.vel = pygame.Vector2(0, -1) * 2  # slow drift upward
+
+        self.timer = 90  # 1.5 second fuse
+
+    def update(self, **kwargs):
+        groups = kwargs.get("groups")
+        sfx = kwargs.get("sfx")
+
+        # Movement
+        self.pos += self.vel
+        self.rect.center = self.pos
+
+        # Fuse countdown
+        self.timer -= 1
+        if self.timer <= 0:
+            self.explode(groups, sfx)
+
+    def explode(self, groups, sfx):
+        # ⭐ Mark as exploded so collision system doesn't crash
+        self.exploded = True
+
+        audio.play_sfx(sfx, "grenade_explode")
+
+        # Massive shrapnel burst
+        for ang in range(0, 360, 15):  # 24 fragments
+            s = ShrapnelBullet(self.pos, ang, self.screen_w, self.screen_h)
+            groups["all_sprites"].add(s)
+            groups["bullets"].add(s)
+
+        # Kill all non-boss enemies
+        for enemy in groups["enemies"]:
+            if not getattr(enemy, "is_boss", False):
+                enemy.kill()
+
+        self.kill()
+
+
+
+# ============================================================
+#   ⭐ FIRE MEGABOMB
+# ============================================================
+def fire_megabomb(player, groups, state, sfx):
+    bomb = MegaBomb(
+        pos=player.pos,
+        screen_w=state["WIDTH"],
+        screen_h=state["HEIGHT"]
+    )
+
+    groups["all_sprites"].add(bomb)
+    groups["shrapnel_grenades"].add(bomb)
+
+    audio.play_sfx(sfx, "grenade_launch")
+
+
+# ============================================================
+#   ⭐ STACKING WEAPON SYSTEM (unchanged)
+# ============================================================
 def handle_autofire(player, groups, sfx, state):
     """
     Stacking weapon system:

@@ -30,7 +30,7 @@ def debugger_freeze_loop(debugger, screen, WIDTH, HEIGHT):
 
             elif event.key == pygame.K_q:
                 pygame.quit()
-                raise SystemExit
+                raise SystemExit(0)
 
     # Stay frozen — skip the rest of the frame
     return True

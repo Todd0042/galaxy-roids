@@ -21,6 +21,18 @@ from ui.level_select import run_level_select
 from ui.countdown import run_countdown
 from ui.game_over import run_game_over
 
+# --- Window Toggle Helper ---
+def toggle_maximize(screen):
+    pygame.display.toggle_fullscreen()
+    pygame.display.toggle_fullscreen()
+
+    screen = pygame.display.set_mode(
+        (screen.get_width(), screen.get_height()),
+        pygame.RESIZABLE
+    )
+
+    return screen
+
 
 def main():
     # ==========================
@@ -83,6 +95,19 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
                 break
+
+            # --- F11: Toggle maximize/windowed ---
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_F11:
+                    screen = toggle_maximize(screen)
+
+                    WIDTH = screen.get_width()
+                    HEIGHT = screen.get_height()
+                    state["WIDTH"] = WIDTH
+                    state["HEIGHT"] = HEIGHT
+
+                    state["render_surface"] = pygame.Surface((WIDTH, HEIGHT))
+                    continue
 
             # --- Handle window resizing ---
             if event.type == pygame.VIDEORESIZE:

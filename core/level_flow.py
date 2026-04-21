@@ -1,6 +1,7 @@
 import pygame
 from ui.popups import show_victory_popup
 from systems.level_manager import start_level
+from settings import STARTING_POWERUPS
 
 
 def handle_boss_defeat(player, groups, state, sfx, screen, font):
@@ -97,16 +98,47 @@ def handle_boss_defeat(player, groups, state, sfx, screen, font):
     if ch and sfx.get("player_power_reset"):
         ch.play(sfx["player_power_reset"])
 
-    player.powerup_hits = min(player.powerup_hits, 1)
+    # --- Powerup reduction rules based on level ---
+    if current_level <= 4:
+        # Reduce to exactly 1
+        player.powerup_hits = min(player.powerup_hits, 1)
 
+    elif 5 <= current_level <= 8:
+        # Lose exactly 2 levels, but never below 1
+        player.powerup_hits = max(player.powerup_hits - 2, 1)
+
+    else:
+        # Level 9+ lose nothing
+        pass
+
+    # --- Recompute weapon mode + flags ---
     player.weapon_mode = "NORMAL"
     player.has_laser = False
     player.homing_count = 0
 
-    if player.powerup_hits == 1:
+    if player.powerup_hits >= 1:
         player.weapon_mode = "SPREAD"
 
     player.update_appearance()
+
+    # ==========================
+    # DEV OVERRIDE: starting powerup level
+    # ==========================
+    if settings.STARTING_POWERUPS > 0:
+        player.powerup_hits = settings.STARTING_POWERUPS
+
+        # Recompute weapon state
+        player.weapon_mode = "NORMAL"
+        player.has_laser = False
+        player.homing_count = 0
+
+        if player.powerup_hits >= 1:
+            player.weapon_mode = "SPREAD"
+        if player.powerup_hits >= 4:
+            player.has_laser = True
+
+        player.update_appearance()
+
 
     # ==========================
     # 6. Start next level

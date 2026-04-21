@@ -16,6 +16,7 @@ from settings import (
     PLAYER_INVULN_TIME,
     PLAYER_STUN_TIME,
     RAPID_FIRE_COOLDOWN,
+    MEGABOMB_MAX,
 )
 
 # Colors
@@ -30,12 +31,19 @@ class Player(pygame.sprite.Sprite):
         super().__init__()
 
         # --- Rapid-fire state ---
-        self.fire_cooldown = RAPID_FIRE_COOLDOWN
+        self.fire_cooldown = 0
         self.fire_button_held = False
 
         # --- Asteroid collision cooldown ---
         self.last_asteroid_hit = 0
         self.asteroid_hit_cooldown = 1000
+
+        # --- Special weapon state ---
+        self.megabomb_used = 0
+        # --- Special weapon charge state ---
+        self.special_charging = False
+        self.special_charge = 0
+
 
         # --- Screen size ---
         self.screen_w = screen_w
@@ -288,11 +296,19 @@ class Player(pygame.sprite.Sprite):
         else:
             self.image.set_alpha(255)
 
+        # --- Special weapon charge ---
+        if self.special_charging:
+            self.special_charge += 1
+
+
         # --- Cooldowns ---
         if self.shrapnel_cooldown > 0:
             self.shrapnel_cooldown -= 1
         if self.fire_cooldown > 0:
             self.fire_cooldown -= 1
+
+        print("charging:", self.special_charging, "charge:", self.special_charge)
+
 
         # --- Sync hitbox ---
         self.hitbox_center = pygame.Vector2(self.pos)
