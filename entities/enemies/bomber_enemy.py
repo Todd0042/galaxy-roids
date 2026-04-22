@@ -1,7 +1,19 @@
 import pygame
 import math
 import random
+import os
+import sys
 from .base_enemy import BaseEnemy
+
+# ============================================================
+#   RESOURCE PATH (PyInstaller-safe)
+# ============================================================
+def resource_path(relative_path):
+    """Return absolute path to resource, works for dev and PyInstaller."""
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(relative_path)
+
 
 # Bomber constants
 BOMBER_CHARGE_TIME = 400        # ms before dash (glow-up)
@@ -19,7 +31,6 @@ class BomberEnemy(BaseEnemy):
 
         self.spawn_delay = 2000  # ms
         self.last_update_time = pygame.time.get_ticks()
-
 
         # ⭐ NEW: 2-second freeze after spawning
         self.spawn_delay = 2000  # milliseconds
@@ -120,7 +131,6 @@ class BomberEnemy(BaseEnemy):
         if self.state == "EXPLODING":
             # ⭐ Do NOT wrap during explosion
             return
-
 
     # -----------------------------------------------------------
     #   ATTACK LOGIC — explosion damage

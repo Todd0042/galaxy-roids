@@ -1,5 +1,7 @@
 import pygame
 import math
+import os
+import sys
 
 from settings import (
     BOSS_HEALTH_BASE,
@@ -14,6 +16,15 @@ from settings import (
 
 from .base_boss import BaseBoss
 from entities.projectiles import VenomOrb, HazardPool
+
+# ============================================================
+#   RESOURCE PATH (PyInstaller-safe)
+# ============================================================
+def resource_path(relative_path):
+    """Return absolute path to resource, works for dev and PyInstaller."""
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(relative_path)
 
 
 class Boss3(BaseBoss):
@@ -58,7 +69,7 @@ class Boss3(BaseBoss):
         self.image = pygame.Surface((160, 90), pygame.SRCALPHA)
 
         pygame.draw.rect(self.image, RED, (10, 20, 140, 50), border_radius=18)
-        pygame.draw.rect(self.image, WHITE, (55, 5, 50, 25), border_radius=10)
+        pygame.draw.rect(self.image, WHITE, (55, 5, 25, 25), border_radius=10)
         pygame.draw.ellipse(self.image, (200, 80, 80), (60, 55, 40, 25))
 
         self.rect = self.image.get_rect()

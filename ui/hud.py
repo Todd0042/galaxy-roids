@@ -1,5 +1,16 @@
 import pygame
 import os
+import sys
+
+# ============================================================
+#   RESOURCE PATH (PyInstaller-safe)
+# ============================================================
+def resource_path(relative_path):
+    """Return absolute path to resource, works for dev and PyInstaller."""
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(relative_path)
+
 
 _FONT_CACHE = {}
 
@@ -10,8 +21,8 @@ def get_arcade_font(size: int) -> pygame.font.Font:
     if size in _FONT_CACHE:
         return _FONT_CACHE[size]
 
-    # Path to your arcade font
-    font_path = os.path.join("assets", "fonts", "retro.ttf")
+    # Path to your arcade font (PyInstaller-safe)
+    font_path = resource_path(os.path.join("assets", "fonts", "retro.ttf"))
 
     try:
         font = pygame.font.Font(font_path, size)
@@ -21,9 +32,6 @@ def get_arcade_font(size: int) -> pygame.font.Font:
 
     _FONT_CACHE[size] = font
     return font
-
-
-
 
 
 # ============================================================

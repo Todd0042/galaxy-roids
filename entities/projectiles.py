@@ -1,6 +1,19 @@
 import pygame
 import math
 import random
+import os
+import sys
+
+# ============================================================
+#   RESOURCE PATH (PyInstaller-safe)
+# ============================================================
+def resource_path(relative_path):
+    """Return absolute path to resource, works for dev and PyInstaller."""
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(relative_path)
+
+
 from settings import (
     VENOM_ORB_GRAVITY,
     VENOM_ORB_BOUNCE_FACTOR,
@@ -406,6 +419,7 @@ class HazardPool(pygame.sprite.Sprite):
         if self.timer <= 0:
             self.kill()
 
+
 # ============================================================
 #   Death Beam (boss 2)
 # ============================================================
@@ -498,6 +512,3 @@ class Boss2LaserBeam(pygame.sprite.Sprite):
         self.timer -= 1
         if self.timer <= 0:
             self.kill()
-
-
-

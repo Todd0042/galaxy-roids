@@ -2,6 +2,17 @@ import pygame
 import math
 import random
 import os
+import sys
+
+# ============================================================
+#   RESOURCE PATH (PyInstaller-safe)
+# ============================================================
+def resource_path(relative_path):
+    """Return absolute path to resource, works for dev and PyInstaller."""
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(relative_path)
+
 
 # Player constants
 from settings import (
@@ -42,8 +53,14 @@ class Player(pygame.sprite.Sprite):
         self.screen_h = screen_h
 
         # --- Ship appearance ---
-        self.base_image = pygame.image.load("assets/player/player_ship.png").convert_alpha()
-        self.engine_glow = pygame.image.load("assets/player/engine_glow.png").convert_alpha()
+        self.base_image = pygame.image.load(
+            resource_path("assets/player/player_ship.png")
+        ).convert_alpha()
+
+        self.engine_glow = pygame.image.load(
+            resource_path("assets/player/engine_glow.png")
+        ).convert_alpha()
+
         print("Glow path:", os.path.abspath("assets/player/engine_glow.png"))
         print("Glow size:", self.engine_glow.get_size())
 
@@ -228,27 +245,22 @@ class Player(pygame.sprite.Sprite):
                 self.vel -= self.direction * PLAYER_REVERSE_THRUST
 
         # -------------------------------------------------
-        #   ⭐ 3‑POINT TRAIL SYSTEM (center stable, sides jittered)
+        #   ⭐ 3‑POINT TRAIL SYSTEM
         # -------------------------------------------------
         if self.thrusting and trail_group is not None:
-            # Base trail position (behind glow)
             glow_offset = self.image.get_height() * 0.30
             trail_offset = self.image.get_height() * 0.55
             trail_base = self.pos + (-self.direction * trail_offset)
 
-            # Perpendicular vector for left/right
             normal = pygame.Vector2(-self.direction.y, self.direction.x)
 
-            # Center trail (stable, slightly further back)
             center_pos = trail_base + (-self.direction * (self.image.get_height() * 0.05))
             trail_group.add(TrailSegment(center_pos))
 
-            # Left trail (jittered, wider)
             left_pos = trail_base + normal * (self.image.get_width() * 0.30)
             left_pos += pygame.Vector2(random.uniform(-1, 1), random.uniform(-1, 1))
             trail_group.add(TrailSegment(left_pos))
 
-            # Right trail (jittered, wider)
             right_pos = trail_base - normal * (self.image.get_width() * 0.30)
             right_pos += pygame.Vector2(random.uniform(-1, 1), random.uniform(-1, 1))
             trail_group.add(TrailSegment(right_pos))
@@ -279,7 +291,6 @@ class Player(pygame.sprite.Sprite):
 
         # --- Visual flicker + flash ---
         if self.flash_timer > 0:
-            # Hit flash overrides flicker
             self.image.set_alpha(255)
         elif self.stun_timer > 0:
             self.image.set_alpha(150)
@@ -306,8 +317,6 @@ class Player(pygame.sprite.Sprite):
     #   Draw
     # -------------------------------------------------
     def draw(self, surface):
-        # Only draw the ship here.
-        # Glow is drawn by the renderer BEFORE the player.
         surface.blit(self.image, self.rect)
 
     # -------------------------------------------------
@@ -345,11 +354,9 @@ class Player(pygame.sprite.Sprite):
         self.lose_powerup_level()
         self.stun_timer = PLAYER_STUN_TIME
 
-        # ⭐ Screen shake + flash
         self.trigger_screen_shake(intensity=6, duration=12)
         self.trigger_hit_flash()
 
-        # ⭐ AUDIO: player hit
         if self.sfx and self.sfx.get("player_hit"):
             ch = pygame.mixer.find_channel()
             if ch:
@@ -359,14 +366,13 @@ class Player(pygame.sprite.Sprite):
         self.health -= damage
         self.lose_powerup_level()
 
-        # ⭐ AUDIO: explosion damage
         if self.sfx and self.sfx.get("player_hit"):
             ch = pygame.mixer.find_channel()
             if ch:
                 ch.play(self.sfx["player_hit"])
 
     # -------------------------------------------------
-    #   Generic Damage Entry Point (used by enemies)
+    #   Generic Damage Entry Point
     # -------------------------------------------------
     def apply_damage(self, amount):
         self.take_damage(amount)

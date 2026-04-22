@@ -1,7 +1,19 @@
 import pygame
 import math
 import random
+import os
+import sys
 from .base_enemy import BaseEnemy
+
+# ============================================================
+#   RESOURCE PATH (PyInstaller-safe)
+# ============================================================
+def resource_path(relative_path):
+    """Return absolute path to resource, works for dev and PyInstaller."""
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(relative_path)
+
 
 # Stinger constants
 STINGER_DASH_SPEED = 8.5

@@ -1,6 +1,17 @@
 import pygame
 import math
+import os
+import sys
 from settings import MAX_BOSS_HEALTH
+
+# ============================================================
+#   RESOURCE PATH (PyInstaller-safe)
+# ============================================================
+def resource_path(relative_path):
+    """Return absolute path to resource, works for dev and PyInstaller."""
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(relative_path)
 
 
 class BaseBoss(pygame.sprite.Sprite):
@@ -69,7 +80,7 @@ class BaseBoss(pygame.sprite.Sprite):
             ch = pygame.mixer.find_channel()
             if ch:
                 ch.play(snd)
-                
+
     # --------------------------------------------------------
     # Health cap helper
     # --------------------------------------------------------

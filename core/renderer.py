@@ -1,5 +1,16 @@
 import pygame
+import os
+import sys
 from ui.hud import draw as draw_hud
+
+# ============================================================
+#   RESOURCE PATH (PyInstaller-safe)
+# ============================================================
+def resource_path(relative_path):
+    """Return absolute path to resource, works for dev and PyInstaller."""
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(relative_path)
 
 
 def render_frame(surface, player, groups, state, debugger, clock):
@@ -72,15 +83,13 @@ def render_frame(surface, player, groups, state, debugger, clock):
     # ==========================
     for boss in groups["boss_group"]:
         if hasattr(boss, "draw_laser") and boss.laser_active:
-            # Draw laser normally, but apply shake to the surface AFTER
             temp_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
             boss.draw_laser(temp_surface)
             surface.blit(temp_surface, (shake_x, shake_y))
 
-
     # ==========================
     # Boss Extra Drawing (tails, beams, etc.)
-    # ==========================d
+    # ==========================
     for boss in groups["boss_group"]:
         if hasattr(boss, "draw_extra"):
             boss.draw_extra(surface, offset=(shake_x, shake_y))

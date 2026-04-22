@@ -1,11 +1,22 @@
 import pygame
 import random
+import os
+import sys
 
 from settings import (
     ASTEROID_HEALTH_LARGE, ASTEROID_HEALTH_MEDIUM, ASTEROID_HEALTH_SMALL,
     ASTEROID_SPEED_RANGE, WHITE
 )
 from entities.projectiles import Bullet
+
+# ============================================================
+#   RESOURCE PATH (PyInstaller-safe)
+# ============================================================
+def resource_path(relative_path):
+    """Return absolute path to resource, works for dev and PyInstaller."""
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(relative_path)
 
 
 class Asteroid(pygame.sprite.Sprite):
@@ -103,7 +114,7 @@ class Asteroid(pygame.sprite.Sprite):
             if self.fire_cooldown > 0:
                 self.fire_cooldown -= 1
             else:
-                angle = (player_pos - self.pos).angle_to(pygame.Vector2(1, 0))
+                angle = (player_pos - self.pos).angle_to(pygame.VectorVector2(1, 0))
                 shot = Bullet(
                     self.rect.center,
                     -angle,

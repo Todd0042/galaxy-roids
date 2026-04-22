@@ -1,7 +1,19 @@
 import pygame
 import math
 import random
+import os
+import sys
 from .base_enemy import BaseEnemy
+
+# ============================================================
+#   RESOURCE PATH (PyInstaller-safe)
+# ============================================================
+def resource_path(relative_path):
+    """Return absolute path to resource, works for dev and PyInstaller."""
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(relative_path)
+
 
 # Blob constants (tweak as needed)
 BLOB_TRAP_TIME = 500       # milliseconds player is trapped
@@ -68,7 +80,6 @@ class BlobEnemy(BaseEnemy):
         # NEW: Pac‑Man style wrapping
         self.pos.x %= self.width
         self.pos.y %= self.height
-
 
     # -----------------------------------------------------------
     #   ATTACK — blobs do not shoot or dive

@@ -1,6 +1,17 @@
 import pygame
 import os
+import sys
 import time
+
+# ============================================================
+#   RESOURCE PATH (PyInstaller-safe)
+# ============================================================
+def resource_path(relative_path):
+    """Return absolute path to resource, works for dev and PyInstaller."""
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(relative_path)
+
 
 # ---------------------------------------------------------
 # GLOBAL MUSIC MODE
@@ -18,10 +29,10 @@ sfx_last_played = {}
 sfx_cooldowns = {}
 
 # ⭐ Default cooldown for ALL sounds (strong anti-spam)
-DEFAULT_SFX_COOLDOWN = 0.0   # 200ms
+DEFAULT_SFX_COOLDOWN = 0.0
 
 # ⭐ Minimum spacing for rapid-fire weapons (even if cooldown is lower)
-RAPID_FIRE_MIN_SPACING = .15  # 150ms
+RAPID_FIRE_MIN_SPACING = 0.15
 
 # ⭐ Sounds considered rapid-fire
 rapid_fire_sounds = {
@@ -92,7 +103,7 @@ def play_sfx(sfx_dict, name):
 def load_sfx(path):
     """Safely load a sound effect, returning None if missing."""
     try:
-        return pygame.mixer.Sound(path)
+        return pygame.mixer.Sound(resource_path(path))
     except (pygame.error, FileNotFoundError):
         print(f"[AUDIO] Missing or invalid SFX: {path}")
         return None
@@ -103,14 +114,16 @@ def load_sounds(sound_map: dict):
     loaded = {}
 
     for key, path in sound_map.items():
-        if not os.path.exists(path):
-            print(f"[AUDIO] Missing file: {path}")
+        full_path = resource_path(path)
+
+        if not os.path.exists(full_path):
+            print(f"[AUDIO] Missing file: {full_path}")
             continue
 
         try:
-            loaded[key] = pygame.mixer.Sound(path)
+            loaded[key] = pygame.mixer.Sound(full_path)
         except Exception as e:
-            print(f"[AUDIO] Failed to load {path}: {e}")
+            print(f"[AUDIO] Failed to load {full_path}: {e}")
 
     return loaded
 
@@ -123,7 +136,8 @@ def play_music(track_name, volume=0.6, loop=-1, fade_ms=0):
     """Plays music from assets/music/<mode>/<track>.wav"""
     global music_mode
 
-    path = os.path.join("assets", "music", music_mode, f"{track_name}.wav")
+    rel = os.path.join("assets", "music", music_mode, f"{track_name}.wav")
+    path = resource_path(rel)
 
     if not os.path.exists(path):
         print(f"[AUDIO] Missing music file: {path}")

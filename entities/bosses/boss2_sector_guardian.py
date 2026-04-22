@@ -1,12 +1,24 @@
 import pygame
 import math
 import random
+import os
+import sys
 from settings import (
     BOSS_HEALTH_BASE, BOSS_SPEED_BASE, WHITE
 )
 from entities.projectiles import GravityBomb
 from entities.projectiles import Boss2LaserBeam
 from .base_boss import BaseBoss
+
+# ============================================================
+#   RESOURCE PATH (PyInstaller-safe)
+# ============================================================
+def resource_path(relative_path):
+    """Return absolute path to resource, works for dev and PyInstaller."""
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(relative_path)
+
 
 class Boss2(BaseBoss):
     """
@@ -20,7 +32,6 @@ class Boss2(BaseBoss):
         self.enable_death_laser = (level % 2 == 0)
         self.death_laser_cooldown = 30   # ~5 seconds
         print("Laser enabled:", self.enable_death_laser)
-
 
         # -----------------------------------------
         # AUDIO OVERRIDES FOR SECTOR GUARDIAN
@@ -128,6 +139,3 @@ class Boss2(BaseBoss):
 
         # Call BaseBoss update (movement + attacks)
         super().update(player_pos=player_pos, groups=groups, state=state, **kwargs)
-
-
-

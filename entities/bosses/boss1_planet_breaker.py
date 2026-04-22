@@ -1,10 +1,22 @@
 import pygame
 import math
+import os
+import sys
 from settings import (
     BOSS_HEALTH_BASE, BOSS_SPEED_BASE, BOSS_LASER_COOLDOWN,
     BOSS_LASER_DURATION, BOSS_LASER_WARNING, RED, WHITE
 )
 from .base_boss import BaseBoss
+
+# ============================================================
+#   RESOURCE PATH (PyInstaller-safe)
+# ============================================================
+def resource_path(relative_path):
+    """Return absolute path to resource, works for dev and PyInstaller."""
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(relative_path)
+
 
 class Boss1(BaseBoss):
     """
@@ -23,9 +35,6 @@ class Boss1(BaseBoss):
         self.sound_laser_warning = "boss1_laser_warning"
         self.sound_laser_fire = "boss1_laser"
 
-        # If you don't have custom files yet, BaseBoss will fall back
-        # to generic boss sounds automatically.
-
         # -----------------------------------------
         # STATS & VISUALS
         # -----------------------------------------
@@ -35,7 +44,6 @@ class Boss1(BaseBoss):
         self.health = self.max_health
 
         self.contact_damage = 10
-
 
         self.image = pygame.Surface((150, 80), pygame.SRCALPHA)
         pygame.draw.rect(self.image, RED, (0, 0, 150, 50), border_radius=15)

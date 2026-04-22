@@ -1,8 +1,19 @@
 import pygame
 import random
 import math
+import os
+import sys
 from .base_enemy import BaseEnemy
 from settings import BULLET_SPEED, BULLET_DAMAGE, PLAYER_SIZE
+
+# ============================================================
+#   RESOURCE PATH (PyInstaller-safe)
+# ============================================================
+def resource_path(relative_path):
+    """Return absolute path to resource, works for dev and PyInstaller."""
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(relative_path)
 
 
 class RegularEnemy(BaseEnemy):
@@ -11,16 +22,10 @@ class RegularEnemy(BaseEnemy):
         self.type = "REGULAR"
         self.contact_damage = 5
 
-
         # Shooting parameters (unlocked at level 13)
         self.can_shoot = (level >= 13)
         self.shoot_cooldown = 90  # frames
         self.shoot_timer = random.randint(0, self.shoot_cooldown)
-
-    # -----------------------------------------------------------
-    #   VISUAL OVERRIDES (optional)
-    # -----------------------------------------------------------
-    # Uses BaseEnemy's draw_body() and draw_wings() — perfect for regular bugs.
 
     # -----------------------------------------------------------
     #   MOVEMENT LOGIC — weaving drift toward player
@@ -85,5 +90,4 @@ class RegularEnemy(BaseEnemy):
     # -----------------------------------------------------------
     def collision_effect(self, player):
         """Regular enemies just deal standard contact damage."""
-        # Player damage is handled in main loop; nothing special here.
         pass
