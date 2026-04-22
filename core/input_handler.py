@@ -17,7 +17,7 @@ def handle_gameplay_input(event, player, groups, state, sfx):
         result = show_pause_popup()
         if result == "exit":
             pygame.quit()
-            raise SystemExit
+            raise SystemExit(0)
         return
 
     # -------------------------------------------------------

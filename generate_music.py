@@ -226,7 +226,7 @@ def gen_game_over_16():
 # =========================================================
 
 def gen_menu_8():
-    bpm = 48
+    bpm = 96
     notes = [-12, -9, -5, -2]
     durations = [0.25] * len(notes)
     samples = sequence_melody(notes, durations, 40, sq, volume=0.35)
@@ -235,7 +235,7 @@ def gen_menu_8():
 
 
 def gen_level_8():
-    bpm = 55
+    bpm = 110
     notes = [-14, -10, -7, -5, -7, -10]
     durations = [0.2] * len(notes)
     samples = sequence_melody(notes, durations, 45, sq, volume=0.35)
@@ -245,7 +245,7 @@ def gen_level_8():
 
 
 def gen_boss_8():
-    bpm = 60
+    bpm = 120
     notes = [-24, -22, -21, -19, -24, -22, -21, -17]
     durations = [0.18] * len(notes)
     base = sequence_melody(notes, durations, 50, sq, volume=0.4)
@@ -261,7 +261,7 @@ def gen_boss_8():
 
 
 def gen_victory_8():
-    bpm = 60
+    bpm = 120
     notes = [-3, -5, -7, -8, -7, -5, -3, -12]
     durations = [0.2] * len(notes)
     samples = sequence_melody(notes, durations, 15, sq, volume=0.4)

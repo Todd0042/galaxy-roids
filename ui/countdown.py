@@ -30,4 +30,4 @@ def run_countdown(screen, font, seconds=3):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
-                    raise SystemExit
+                    raise SystemExit(0)

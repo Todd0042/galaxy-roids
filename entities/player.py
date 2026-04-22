@@ -30,7 +30,7 @@ class Player(pygame.sprite.Sprite):
         super().__init__()
 
         # --- Rapid-fire state ---
-        self.fire_cooldown = RAPID_FIRE_COOLDOWN
+        self.fire_cooldown = 0
         self.fire_button_held = False
 
         # --- Asteroid collision cooldown ---

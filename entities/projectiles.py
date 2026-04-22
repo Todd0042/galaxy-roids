@@ -81,8 +81,6 @@ class ShrapnelBullet(pygame.sprite.Sprite):
         forward = pygame.Vector2(0, -1).rotate(angle)
         self.vel = forward * 6
 
-        # ❌ no audio here – sfx isn't available in __init__
-
         self.timer = 500
         self.exploded = False
         self.explosion_sound_played = False  # avoid double-play
