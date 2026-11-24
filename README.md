@@ -377,11 +377,11 @@ python3 sanity_check.py
 
 ## 9. License & Support
 
-* **License**: No `LICENSE` file is currently included in this repository. All rights remain with the author unless a license is added.
+* **License**: [PolyForm Noncommercial License 1.0.0](LICENSE) — free for personal, hobby, educational, research and nonprofit use; commercial use (inside a company, in a paid product or service, or for profit) requires a separate license from [Todd0042](https://github.com/Todd0042).
 * **Third-Party Libraries**: Built with [Pygame](https://www.pygame.org/) (LGPL).
 
 <p align="center">
-  If you enjoy Galaxy-Roids, consider supporting open-source development:<br/><br/>
+  If you enjoy Galaxy-Roids, consider supporting its development:<br/><br/>
   <a href="https://ko-fi.com/todd0042" target="_blank">
     <img src="https://img.shields.io/badge/☕_Support_Galaxy--Roids_on_Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support on Ko-fi">
   </a>
